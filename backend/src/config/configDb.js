@@ -1,23 +1,15 @@
 "use strict";
-import { DataSource } from "typeorm";
-import { DATABASE, DB_USERNAME, HOST, DB_PASSWORD, DB_PORT } from "./configEnv.js";
+import { PrismaClient } from "@prisma/client";
 
-export const AppDataSource = new DataSource({
-    type: "postgres",
-    host: `${HOST}`,
-    port: `${DB_PORT}`,
-    username: `${DB_USERNAME}`,
-    password: `${DB_PASSWORD}`,
-    database: `${DATABASE}`,
-    entities: ["src/entities/*.js"],
-    synchronize: true,
-    logging: false,
-    });
+// Instanciamos el cliente de Prisma (Este reemplaza a AppDataSource)
+export const prisma = new PrismaClient();
 
 export async function connectDB() {
     try {
-        await AppDataSource.initialize();
-        console.log("=> Conexión exitosa a la base de datos PostgreSQL!");
+        // En Prisma, la conexión se inicia automáticamente al hacer la primera consulta,
+        // pero podemos forzarla con $connect() para asegurarnos de que Docker está respondiendo.
+        await prisma.$connect();
+        console.log("=> Conexión exitosa a la base de datos!");
     } catch (error) {
         console.error("Error al conectar con la base de datos:", error);
         process.exit(1);

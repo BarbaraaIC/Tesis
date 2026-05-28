@@ -1,5 +1,7 @@
-export const HOST = process.env.DB_HOST || 'localhost';
-export const DB_PORT = process.env.DB_PORT || 5432;
-export const DB_USERNAME = process.env.DB_USER || 'postgres';
-export const DB_PASSWORD = process.env.DB_PASSWORD || '1234';
-export const DATABASE = process.env.DB_NAME || 'tesis-db';
+"use strict";
+import dotenv from "dotenv";
+dotenv.config();
+
+export const PORT = process.env.PORT || 3000;
+// Aquí exportas tokens JWT, claves de APIs, etc.
+// Ya no necesitas exportar HOST, DB_PORT, ni contraseñas de la BD aquí.
