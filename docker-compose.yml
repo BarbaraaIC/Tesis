@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - project_tesis
+
+  backend:
+    build: ./backend
+    container_name: backend_app
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: myuser
+      DB_PASSWORD: mypassword
+      DB_NAME: mydb
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - project_tesis
+
+  frontend:
+    build: ./frontend
+    container_name: frontend_app
+    ports:
+      - "8080:3000"
+    environment:
+      VITE_API_URL: http://backend:3000
+    depends_on:
+      - backend
+    networks:
+      - project_tesis
+
+volumes:
+  db_data:
+
+networks:
+  project_tesis:
+    driver: bridge
