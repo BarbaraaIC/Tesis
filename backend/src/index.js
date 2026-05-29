@@ -1,4 +1,3 @@
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -11,14 +10,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-connectDB();
-
 const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-    res.send("Backend funcionandoo");
+    res.send("Backend funcionando");
 });
 
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
-});
+async function start() {
+    await connectDB();
+
+    app.listen(PORT, () => {
+        console.log(`Servidor corriendo en puerto ${PORT}`);
+    });
+}
+
+start();
