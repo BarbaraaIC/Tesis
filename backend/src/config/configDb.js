@@ -1,13 +1,17 @@
-"use strict";
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-// Instanciamos el cliente de Prisma (Este reemplaza a AppDataSource)
-export const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
+
+const adapter = new PrismaPg(pool);
+
+
+export const prisma = new PrismaClient({ adapter });
 
 export async function connectDB() {
     try {
-        // En Prisma, la conexión se inicia automáticamente al hacer la primera consulta,
-        // pero podemos forzarla con $connect() para asegurarnos de que Docker está respondiendo.
         await prisma.$connect();
         console.log("=> Conexión exitosa a la base de datos!");
     } catch (error) {
