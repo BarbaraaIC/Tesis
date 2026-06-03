@@ -3,15 +3,13 @@ services:
     image: postgres:16
     container_name: postgres_db
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydb
-    ports:
-      - "5433:5432"
+      POSTGRES_USER: ${DB_USER:-usuario_tesis}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-clave_tesis_123}
+      POSTGRES_DB: ${DB_NAME:-mydb_tesis}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myuser -d mydb"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-usuario_tesis} -d ${DB_NAME:-mydb_tesis}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,9 +24,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: myuser
-      DB_PASSWORD: mypassword
-      DB_NAME: mydb
+      DB_USER: ${DB_USER:-usuario_tesis}
+      DB_PASSWORD: ${DB_PASSWORD:-clave_tesis_123}
+      DB_NAME: ${DB_NAME:-mydb_tesis}
     depends_on:
       db:
         condition: service_healthy
@@ -41,7 +39,7 @@ services:
     ports:
       - "8080:3000"
     environment:
-      VITE_API_URL: http://backend:3000
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     depends_on:
       - backend
     networks:
