@@ -1,4 +1,5 @@
 "use strict";
+import Joi from "joi";
 
 export const registroValidation = Joi.object({
     nombre: Joi.string()
@@ -85,12 +86,12 @@ export const registroValidation = Joi.object({
     .min(1)
     .max(99)
     .required()
-    .pattern(/^[1-9][0-9]?$/)
     .messages({
         "number.base": "La edad debe ser un número",
-        "string.integer": "La edad no puede tener decimales",
+        "number.integer": "La edad no puede tener decimales",
         "any.required": "La edad es obligatoria",
-        "string.pattern.base": "La edad solo puede ser hasta 2 dígitos",
+        "number.min": "La edad debe ser al menos 1",
+        "number.max": "La edad no puede superar 99",
     }),
     ocupacion: Joi.string()
     .trim()                     
@@ -120,24 +121,25 @@ export const registroValidation = Joi.object({
         "any.required": "La dirección es un campo requerido."
     }),
     enfermedades: Joi.string()
-    .trim()
-    .max(500)
-    .pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,;\-\/]+$/)
-    .required()
-    .messages({
-        "string.max": "El campo de enfermedades no puede superar los 500 caracteres.",
-        "string.empty": "Si no tiene enfermedades poner (no tengo)",
-        "string.pattern.base": "El texto contiene caracteres no permitidos. Solo se aceptan letras, números, espacios, comas, puntos y guiones.",
-    }),
+        .trim()
+        .max(500)
+        .pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,;\-\/]+$/)
+        .optional() 
+        .allow('', null)
+        .messages({
+            "string.max": "El campo de enfermedades no puede superar los 500 caracteres.",
+            "string.pattern.base": "El texto contiene caracteres no permitidos. Solo se aceptan letras, números, espacios, comas, puntos y guiones.",
+        }),
 
     medicamentos: Joi.string()
-    .trim()
-    .requried()
-    .max(100)
-    .pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\,\-]+$/)
-    .messages({
-        "string.max": "El nombre de los medicamentos no puede superar los {#limit} caracteres.",
-        "string.pattern.base": "En este campo solo debes ingresar el nombre de los medicamentos (letras, espacios o comas). No incluyas números ni dosis.",
+        .trim()
+        .max(100)
+        .pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\,\-]+$/)
+        .optional() 
+        .allow('', null)
+        .messages({
+            "string.max": "El nombre de los medicamentos no puede superar los 100 caracteres.",
+            "string.pattern.base": "En este campo solo debes ingresar el nombre de los medicamentos (letras, espacios o comas). No incluyas números ni dosis.",
     })
 
 })

@@ -20,6 +20,7 @@ services:
 
   backend:
     build: ./backend
+    command: npm run dev
     container_name: backend_app
     volumes:
       - ./backend:/app
