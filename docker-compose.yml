@@ -21,6 +21,9 @@ services:
   backend:
     build: ./backend
     container_name: backend_app
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
     environment:

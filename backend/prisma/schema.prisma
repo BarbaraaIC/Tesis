@@ -16,7 +16,8 @@ model Usuario {
   direccion             String
   telefono              String
   correo                String                @unique
-  rol                   String
+  password              String
+  rol                   String                @default("paciente")
   enfermedades          String?
   medicamentos          String?
   ocupacion             String
