@@ -2,10 +2,7 @@
 import {encryptPassword} from "../handlers/bcrypt.helper.js";
 import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
 import { registroValidation } from "../validations/usuario.validation.js";
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
+import { prisma } from "../config/configDb.js";
 
 export const crearUsuario = async (req, res) => {
 
@@ -59,3 +56,28 @@ export const crearUsuario = async (req, res) => {
         return handleErrorServer (res, 500, "Hubo un problema en el servidor al crear el usuario." , error.message)
     }
 }
+
+export const obtenerUsuarios = async (req, res) => {
+    try {
+        const { rol, sub } = req.usuario;
+
+        let usuarios;
+
+        if (rol === "administrador") {
+            usuarios = await prisma.usuario.findMany();
+        } else if (rol === "profesional") {
+            // profesional deberia ver solo las personas con rol paciente que el atiende (agregar una nueva fila al schema prisma)
+            usuarios = await prisma.usuario.findMany({
+                where: { rol: "paciente" }
+            });
+        } else {
+            usuarios = await prisma.usuario.findMany({
+                where: { rut: sub }
+            });
+        }
+
+        return handleSuccess(res, 200, "Usuarios obtenidos correctamente.");
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al obtener usuarios.", error.message);
+    }
+};
