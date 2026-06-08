@@ -42,6 +42,10 @@ services:
   frontend:
     build: ./frontend
     container_name: frontend_app
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
       - "8080:3000"
     environment:
