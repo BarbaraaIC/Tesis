@@ -56,7 +56,7 @@ export const crearUsuario = async (req, res) => {
         return handleErrorServer (res, 500, "Hubo un problema en el servidor al crear el usuario." , error.message)
     }
 }
-
+/*
 export const obtenerUsuarios = async (req, res) => {
     try {
         const { rol, sub } = req.usuario;
@@ -81,3 +81,4 @@ export const obtenerUsuarios = async (req, res) => {
         return handleErrorServer(res, 500, "Error al obtener usuarios.", error.message);
     }
 };
+*/

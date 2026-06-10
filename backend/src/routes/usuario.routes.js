@@ -5,6 +5,6 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 const router = Router();
 
 router.post('/', crearUsuario);
-router.get('/', authMiddleware, obtenerUsuarios);
+//router.get('/', authMiddleware, obtenerUsuarios);
 
 export default router;
