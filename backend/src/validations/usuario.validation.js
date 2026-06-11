@@ -90,8 +90,8 @@ export const registroValidation = Joi.object({
         "number.base": "La edad debe ser un número",
         "number.integer": "La edad no puede tener decimales",
         "any.required": "La edad es obligatoria",
-        "number.min": "La edad debe ser al menos 1",
-        "number.max": "La edad no puede superar 99",
+        "number.min": "La edad debe mínima debe ser 1",
+        "number.max": "La edad no puede superar los 110",
     }),
     ocupacion: Joi.string()
     .trim()                     
