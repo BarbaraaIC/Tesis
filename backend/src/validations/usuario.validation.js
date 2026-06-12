@@ -1,12 +1,20 @@
 "use strict";
 import Joi from "joi";
 
+const convertirLetraMayus = (value) => {
+    return value
+        .trim()
+        .toLowerCase()
+        .replace(/(^|\s)([a-záéíóúñ])/g, (_, espacio, letra) => espacio + letra.toUpperCase());
+};
+
 export const registroValidation = Joi.object({
     nombre: Joi.string()
     .min(3)
     .max(50)
     .required()
     .pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]+)*$/)
+    .custom((value) => convertirLetraMayus(value))
     .messages({
         "string.empty": "El nombre es obligatorio.",
         "string.min": "El nombre debe tener un minimo de 3 caracteres.",
@@ -19,6 +27,7 @@ export const registroValidation = Joi.object({
     .max(50)
     .required()
     .pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]+)*$/)
+    .custom((value) => convertirLetraMayus(value))
     .messages({
         "string.empty": "El/los apellido son obligatorio.",
         "string.min": "El apellido debe tener un minimo de 3 caracteres.",

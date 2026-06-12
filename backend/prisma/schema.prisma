@@ -8,20 +8,21 @@ datasource db {
 }
 
 model Usuario {
-  id_usuario            Int                   @id @default(autoincrement())
-  rut                   String                @unique
-  nombre                String
-  apellido              String
-  edad                  Int
-  direccion             String
-  telefono              String
-  correo                String                @unique
-  password              String
-  rol                   String                @default("paciente")
-  enfermedades          String?
-  medicamentos          String?
-  ocupacion             String
-  tratamientosAsignados TratamientoAsignado[]
+  id_usuario               Int                   @id @default(autoincrement())
+  rut                      String                @unique
+  nombre                   String
+  apellido                 String
+  edad                     Int
+  direccion                String
+  telefono                 String
+  correo                   String                @unique
+  password                 String
+  rol                      String                @default("paciente")
+  enfermedades             String?
+  medicamentos             String?
+  ocupacion                String
+  tratamientosAsignados    TratamientoAsignado[] @relation("PacienteTratamientos")
+  tratamientosAsignadosPor TratamientoAsignado[] @relation("ProfesionalTratamientos")
 
   @@map("usuarios")
 }
@@ -52,10 +53,12 @@ model TratamientoAsignado {
   estado_actual    String
   observaciones    String?
   id_usuario       Int
+  id_profesional   Int
   cod_treatment    Int         @map("cod_tratamiento")
   reservas         Reserva[]
   tratamiento      Tratamiento @relation(fields: [cod_treatment], references: [cod_tratamiento])
-  usuario          Usuario     @relation(fields: [id_usuario], references: [id_usuario])
+  usuario          Usuario     @relation("PacienteTratamientos", fields: [id_usuario], references: [id_usuario])
+  profesional      Usuario     @relation("ProfesionalTratamientos", fields: [id_profesional], references: [id_usuario])
 
   @@map("tratamientos_asignados")
 }

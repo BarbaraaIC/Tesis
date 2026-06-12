@@ -5,19 +5,20 @@ export function authMiddleware(req, res, next) {
     const authHeader = req.headers["authorization"];
 
     if (!authHeader) {
-    return handleErrorClient(res, 401, "Acceso denegado. No se proporcionó token.");
+        return handleErrorClient(res, 401, "Acceso denegado. No se proporcionó token.");
     }
 
     const token = authHeader.split(" ")[1];
 
     if (!token) {
-    return handleErrorClient(res, 401, "Acceso denegado. Token malformado.");
+        return handleErrorClient(res, 401, "Acceso denegado. Token malformado.");
     }
 
     try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload;
-    next();
+        const secretKey = process.env.JWT_SECRET || "clave_secreta_por_defecto_tesis";
+        const payload = jwt.verify(token, secretKey);
+            req.usuario = payload;
+                next();
     } catch (error) {
     return handleErrorClient(res, 401, "Token inválido o expirado.", error.message);
     }
