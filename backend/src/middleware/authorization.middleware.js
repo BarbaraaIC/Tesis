@@ -25,6 +25,28 @@ export async function isAdmin(req, res, next) {
     }
 }
 
+export async function isAdminOrProfesional(req, res, next) {
+    try {
+        if (!req.usuario.correo) {
+            return handleErrorClient(res, 401, "Usuario no autenticado.");
+        }
+
+        const userFound = await prisma.usuario.findUnique({
+            where: { correo: req.usuario.correo },
+        });
+
+        if (!userFound) return handleErrorClient(res, 404, "Usuario no encontrado");
+
+        if (userFound.rol !== "administrador" && userFound.rol !== "profesional") {
+            return handleErrorClient(res, 401, "Se requiere rol de administrador o profesional para realizar esta acción.");
+        }
+
+        next();
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error interno del servidor", error.message);
+    }
+}
+
 export async function isProfesional(req, res, next) {
     try {
         if (!req.usuario.correo) {
