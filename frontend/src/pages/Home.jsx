@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 const treatments = [
     'Masaje Terapéutico', 'Rehabilitación', 'Drenaje Linfático',
@@ -24,6 +24,7 @@ const testimonials = [
 ]
 
 function Home() {
+    const navigate = useNavigate()
     return (
         <div>
             <nav className="flex items-center justify-between px-6 md:px-12 py-4 bg-[#04B6B6] shadow-sm">
@@ -40,7 +41,7 @@ function Home() {
             <div className="bg-black/45 flex flex-col items-center justify-center text-white px-4 py-20">
                 <h1 className="text-4xl md:text-6xl font-bold mb-2">KinexCenter</h1>
                     <p className="text-base md:text-lg mb-6 opacity-90">Kinesiología y Bienestar Integral</p>
-            <button className="bg-[#505FB6] text-white px-8 py-3 rounded-lg font-medium transition-colors cursor-pointer">
+            <button onClick={() => navigate('/login')} className="bg-[#505FB6] text-white px-8 py-3 rounded-lg font-medium transition-colors cursor-pointer">
             Reservar hora
             </button>
         </div>
