@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import KinexCenter from './pages/KinexCenter'
 import ProtectRoutes from './components/ProtectRoutes'
+import Layout from './components/Layout'
 
 function App() {
   return (
@@ -12,9 +13,11 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/kinex-center" element={<ProtectRoutes>
-                  <KinexCenter />
-          </ProtectRoutes>} />
+        <Route element={<Layout />}>
+          <Route path="/kinex-center" element={<ProtectRoutes>
+                    <KinexCenter />
+            </ProtectRoutes>} />
+        </Route>
       </Routes>
     </BrowserRouter>
   )
