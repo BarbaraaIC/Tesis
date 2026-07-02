@@ -138,7 +138,7 @@ export const eliminarServicio = async (req, res) => {
         });
 
         if (!servicioExistente) {
-            return handleErrorClient(res, 404, "No se puede eliminar: Servicio no encontrado.");
+            return handleErrorClient(res, 404, "Servicio no encontrado.");
         }
 
         await prisma.servicio.delete({
