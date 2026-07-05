@@ -4,6 +4,7 @@ import usuarioRoutes from './usuario.routes.js';
 import servicioRoutes from './servicio.routes.js';
 import tratamientoRoutes from './tratamiento.routes.js';
 import tratamientoAsigRoutes from './tratamientoAsignado.routes.js'
+import reservasRoutes from './reservas.routes.js'
 
 const router = Router();
 
@@ -12,4 +13,5 @@ router.use('/usuarios', usuarioRoutes);
 router.use('/servicios', servicioRoutes);
 router.use('/tratamientos', tratamientoRoutes);
 router.use('/tratamientosAsig', tratamientoAsigRoutes);
+router.use('/reservas', reservasRoutes);
 export default router;
