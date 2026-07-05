@@ -11,30 +11,38 @@ const Sidebar = () => {
   }
 
   return (
-    <aside className="fixed top-0 left-0 w-64 max-md:w-48 bg-[#505FB6] h-screen p-4 flex flex-col">
+    <aside className="fixed top-0 left-0 w-64 max-md:w-48 bg-[#04B6B6] h-screen p-4 flex flex-col">
       <h1 className="text-white text-xl font-bold mb-8">
         Bienvenid@, {usuario.nombre || 'usuario'}
       </h1>
       <nav className="flex flex-col gap-1">
         <button
-          onClick={() => navigate('')}
-          className="w-full text-left text-white hover:bg-[#28305A] p-2 rounded"
+          onClick={() => navigate('/usuarios')}
+          className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
         >
           Usuarios
         </button>
       </nav>
       <nav className="flex flex-col gap-1">
         <button
-          onClick={() => navigate('')}
-          className="w-full text-left text-white hover:bg-[#28305A] p-2 rounded"
+          onClick={() => navigate('/tratamientos')}
+          className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
         >
           Tratamientos
         </button>
       </nav>
       <nav className="flex flex-col gap-1">
         <button
-          onClick={() => navigate('')}
-          className="w-full text-left text-white hover:bg-[#28305A] p-2 rounded"
+          onClick={() => navigate('/servicios')}
+          className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
+        >
+          Servicios
+        </button>
+      </nav>
+      <nav className="flex flex-col gap-1">
+        <button
+          onClick={() => navigate('/reservas')}
+          className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
         >
           Reservas
         </button>

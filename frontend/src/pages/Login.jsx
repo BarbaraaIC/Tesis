@@ -26,7 +26,8 @@ try {
             }
 
             localStorage.setItem('token', data.data.token)
-            localStorage.setItem('usuario', JSON.stringify(data.data.usuario || {}))
+            localStorage.setItem('usuario', JSON.stringify(data.data.user || {}))
+            //localStorage.setItem('usuario', JSON.stringify(data.data.usuario || {}))
         navigate('/kinex-center')
     } catch {
         setError('Error de conexión con el servidor')
