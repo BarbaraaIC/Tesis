@@ -1,9 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom'
 
 const treatments = [
-    'Masaje Terapéutico', 'Rehabilitación', 'Drenaje Linfático',
-    'Tratamiento Facial', 'Peeling Químico', 'Electroestimulación',
-    'Radiofrecuencia', 'Mesoterapia', 'Tratamiento de Espalda',
+    'Masoterapia', 'Rehabilitación Musculoesquelética', 'Estética Facial',
+    'Tratamiento Estético Facial', 'Estética Corporal'
 ]
 
 const benefits = [

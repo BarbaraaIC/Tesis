@@ -54,9 +54,9 @@ model TratamientoAsignado {
   observaciones    String?
   id_usuario       Int
   id_profesional   Int
-  cod_treatment    Int         @map("cod_tratamiento")
+  cod_tratamiento    Int         @map("cod_tratamiento")
   reservas         Reserva[]
-  tratamiento      Tratamiento @relation(fields: [cod_treatment], references: [cod_tratamiento])
+  tratamiento      Tratamiento @relation(fields: [cod_tratamiento], references: [cod_tratamiento])
   usuario          Usuario     @relation("PacienteTratamientos", fields: [id_usuario], references: [id_usuario])
   profesional      Usuario     @relation("ProfesionalTratamientos", fields: [id_profesional], references: [id_usuario])
 
