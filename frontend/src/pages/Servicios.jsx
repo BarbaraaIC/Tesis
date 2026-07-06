@@ -50,15 +50,15 @@ const Servicios = () => {
 
   const handleCrear = async (e) => {
     e.preventDefault()
-    setErrorModal('')
-    setGuardando(true)
+      setErrorModal('')
+        setGuardando(true)
 
     try {
       await crearServicio(token, nuevoServicio)
-      setMostrarModal(false)
-      setNuevoServicio({ tipo_servicio: '', descripcion: '' })
-      cargarServicios()
-      setMostrarAlerta(true)
+        setMostrarModal(false)
+          setNuevoServicio({ tipo_servicio: '', descripcion: '' })
+            cargarServicios()
+              setMostrarAlerta(true)
     } catch (error) {
       setErrorModal(error.message)
     } finally {
@@ -67,7 +67,7 @@ const Servicios = () => {
   }
 
   if (loading) return <p>Cargando servicios</p>
-  if (error) return <p className="text-red-500">{error}</p>
+    if (error) return <p className="text-red-500">{error}</p>
 
   const rolNormalizado = rol?.toLowerCase().trim()
   const tieneAcceso = rolNormalizado === 'administrador' || rolNormalizado === 'profesional'
@@ -151,7 +151,7 @@ const Servicios = () => {
 
               return (
                 <tr key={s.id_servicio} className={filaClase}>
-                  <td className="p-3 text-gray-800 font-medium">{s.tipo_servicio}</td>
+                  <td className="p-3 text-gray-600">{s.tipo_servicio}</td>
                   <td className="p-3 text-gray-600">{s.descripcion}</td>
                 </tr>
               )
@@ -164,7 +164,6 @@ const Servicios = () => {
         )}
       </div>
 
-      {/* Modal para crear un nuevo servicio */}
       {mostrarModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md">
@@ -175,12 +174,12 @@ const Servicios = () => {
             <form onSubmit={handleCrear} className="flex flex-col gap-3">
               <input
                 type="text"
-                name="tipo_servicio"
-                value={nuevoServicio.tipo_servicio}
-                onChange={handleChange}
-                placeholder="Nombre del servicio"
-                required
-                className="border rounded-lg p-2"
+                  name="tipo_servicio"
+                  value={nuevoServicio.tipo_servicio}
+                  onChange={handleChange}
+                  placeholder="Nombre del servicio"
+                  required
+                  className="border rounded-lg p-2"
               />
               <textarea
                 name="descripcion"

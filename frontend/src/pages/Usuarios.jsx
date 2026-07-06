@@ -24,13 +24,11 @@ const Usuarios = () => {
   }, [token])
 
   if (loading) return <p>Cargando usuarios...</p>
-  if (error) return <p className="text-red-500">{error}</p>
-  if (rol === 'paciente') return <p>No tienes permisos para ver esta sección.</p>
-
+    if (error) return <p className="text-red-500">{error}</p>
+      if (rol === 'paciente') return <p>No tienes permisos para ver esta sección.</p>
 
   const usuariosPorRol =
     rol === 'administrador' ? usuarios : usuarios.filter((u) => u.rol === 'paciente')
-
 
   const normalizar = (str) =>
     str
@@ -38,17 +36,16 @@ const Usuarios = () => {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
 
-
   const texto = normalizar(busqueda)
   const usuariosVisibles = usuariosPorRol.filter((u) =>
     normalizar(`${u.nombre} ${u.apellido}`).includes(texto)
   )
 
   return (
-    <div>
-      <h2 className="text-xl font-bold mb-4">Búsqueda de Usuarios</h2>
+    <div className="max-w-7xl">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Búsqueda de Usuarios</h2>
 
-      <div className="relative mb-4 max-w-sm">
+      <div className="relative mb-6 max-w-sm">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
@@ -68,32 +65,45 @@ const Usuarios = () => {
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre y apellido"
-          className="w-full pl-9 pr-3 py-2 border rounded-lg"
+          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#505FB6] focus:border-transparent"
         />
       </div>
 
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="border-b text-left">
-            <th className="p-2">RUT</th>
-            <th className="p-2">Nombre</th>
-            <th className="p-2">Apellido</th>
-            <th className="p-2">Teléfono</th>
-            <th className="p-2">Correo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {usuariosVisibles.map((u) => (
-            <tr key={u.id_usuario} className="border-b hover:bg-gray-50">
-              <td className="p-2">{u.rut}</td>
-              <td className="p-2">{u.nombre}</td>
-              <td className="p-2">{u.apellido}</td>
-              <td className="p-2">{u.telefono}</td>
-              <td className="p-2">{u.correo}</td>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-[#04B6B6] text-left text-black-500 uppercase text-xs tracking-wide">
+              <th className="p-3 font-semibold">RUT</th>
+              <th className="p-3 font-semibold">Nombre</th>
+              <th className="p-3 font-semibold">Apellido</th>
+              <th className="p-3 font-semibold">Teléfono</th>
+              <th className="p-3 font-semibold">Correo</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {usuariosVisibles.map((u, index) => {
+              let filaClase = 'border-t border-gray-100 hover:bg-[#505FB6]/5 transition-colors'
+              if (index % 2 === 1) {
+                filaClase = 'border-t border-gray-100 bg-gray-50/50 hover:bg-[#505FB6]/5 transition-colors'
+              }
+
+              return (
+                <tr key={u.id_usuario} className={filaClase}>
+                  <td className="p-3 text-gray-600">{u.rut}</td>
+                  <td className="p-3 text-gray-800">{u.nombre}</td>
+                  <td className="p-3 text-gray-800">{u.apellido}</td>
+                  <td className="p-3 text-gray-600">{u.telefono}</td>
+                  <td className="p-3 text-gray-600">{u.correo}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        {usuariosVisibles.length === 0 && (
+          <p className="p-6 text-center text-gray-400 text-sm">No se encontraron usuarios.</p>
+        )}
+      </div>
     </div>
   )
 }
