@@ -16,23 +16,34 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+
         <Route path="/register" element={<Register />} />
+
         <Route element={<Layout />}>
         <Route path="/kinex-center" element={
           <ProtectRoutes><KinexCenter /></ProtectRoutes>
         } />
+
         <Route path="/usuarios" element={
-          <ProtectRoutes><Usuarios /></ProtectRoutes>
-        } />
+        <ProtectRoutes rolesPermitidos={['administrador', 'profesional']}>
+          <Usuarios />
+        </ProtectRoutes>
+      } />
+
         <Route path="/tratamientos" element={
           <ProtectRoutes><Tratamientos /></ProtectRoutes>
         } />
+
         <Route path="/servicios" element={
-          <ProtectRoutes><Servicios /></ProtectRoutes>
-        } />
+        <ProtectRoutes rolesPermitidos={['administrador', 'profesional']}>
+          <Servicios />
+        </ProtectRoutes>
+      } />
+
         <Route path="/reservas" element={
           <ProtectRoutes><Reservas /></ProtectRoutes>
         } />
+
       </Route>
       </Routes>
     </BrowserRouter>
