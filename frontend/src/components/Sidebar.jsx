@@ -29,22 +29,13 @@ const Sidebar = () => {
         </nav>
       )}
 
-      <nav className="flex flex-col gap-1">
-        <button
-          onClick={() => navigate('/tratamientos')}
-          className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
-        >
-          Tratamientos
-        </button>
-      </nav>
-
       {(rolNormalizado === 'administrador' || rolNormalizado === 'profesional') && (
         <nav className="flex flex-col gap-1">
           <button
             onClick={() => navigate('/servicios')}
             className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
           >
-            Servicios
+            Servicios Clínicos
           </button>
         </nav>
       )}
