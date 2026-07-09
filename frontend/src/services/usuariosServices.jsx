@@ -1,15 +1,20 @@
-const API_URL = 'http://localhost:3000/api/usuarios'
+import axios from './root.service.js';
 
 export async function getUsuarios(token) {
-    const response = await fetch(`${API_URL}`, {
+    try {
+        const response = await axios.get('usuarios',{
         headers: {
-        Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
         },
-    })
+    });
+   
 
-    if (!response.ok) {
-        throw new Error('Error al obtener usuarios')
+    return response.data;
+        
+    } catch (error) {
+        console.error("Error al obtener usuarios:", error);
+        throw error;
+        
     }
-
-    return response.json()
+    
 }

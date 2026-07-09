@@ -73,10 +73,10 @@ export const obtenerTratamientos = async (req, res) => {
 
 export const obtenerTratamientoPorId = async (req, res) => {
     try {
-        const { cod_tratamiento } = req.params;
+        const { id_servicio } = req.params;
         
-        const tratamiento = await prisma.tratamiento.findUnique({
-            where: { cod_tratamiento: parseInt(cod_tratamiento) }
+        const tratamiento = await prisma.tratamiento.findMany({
+            where: { id_servicio: parseInt(id_servicio) }
         });
 
         if (!tratamiento) return handleErrorClient(res, 404, "Tratamiento no encontrado.");

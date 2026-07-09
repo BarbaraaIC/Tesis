@@ -15,13 +15,13 @@ export const crearServicioValidation = Joi.object({
         }),
     descripcion: Joi.string()
         .min(3)
-        .max(50)
+        .max(100)
         .required()
-        .pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]+)*$/)
+        .pattern(/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\p{P}]+(?:\s[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\p{P}]+)*$/u)
         .messages({
             "string.empty": "La descripción es obligatoria para una mejor idetificación.",
             "string.min": "La descripción tener un minimo de 3 caracteres.",
-            "string.max": "La descripción debe tener un máximo de 50 caracteres.",
+            "string.max": "La descripción debe tener un máximo de 100 caracteres.",
             "string.pattern.base": "La descripción no puede incluir simbolos ni números."
         }),
     
