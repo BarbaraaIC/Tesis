@@ -58,3 +58,65 @@ export const asignarTratamiento = async (req, res) => {
         return handleErrorServer(res, 500, "Error al asignar tratamiento.", error);
     }
 };
+
+export const getProfesionalesPorPaciente = async (req, res) => {
+    try {
+        const { id_usuario } = req.params;
+        const paciente = parseInt(id_usuario);
+
+        const asignaciones = await prisma.tratamientoAsignado.findMany({
+            where: { id_usuario: paciente },
+            distinct: ['id_profesional'],
+            include: {
+                profesional: true,
+            },
+        });
+
+        const profesionales = await prisma.usuario.findMany({
+            where: {
+                rol: "profesional",
+                tratamientosAsignadosPor: {
+                    some: {
+                        id_usuario: paciente,
+                    },
+                },
+            },
+        });
+
+        return handleSuccess(res, 200, "Profesionales obtenidos con éxito.", profesionales);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al obtener los profesionales del paciente.", error);
+    }
+};
+
+export const actualizarAsistencia = async (req, res) => {
+    try {
+        const id_asignacion = parseInt(req.params.id_asignacion);
+        const { estado_actual, observaciones } = req.body;
+
+        const estadosValidos = ["Asistio", "No asistio"];
+        if (!estadosValidos.includes(estado_actual)) {
+            return handleErrorClient(res, 400, "Estado no válido.");
+        }
+
+        const asignacionExiste = await prisma.tratamientoAsignado.findUnique({
+            where: { id_asignacion: id_asignacion }
+        });
+
+        if (!asignacionExiste) {
+            return handleErrorClient(res, 404, "La asignación especificada no existe.");
+        }
+
+        const asignacionActualizada = await prisma.tratamientoAsignado.update({
+            where: { id_asignacion: id_asignacion },
+            data: {
+                estado_actual: estado_actual,
+                observaciones: observaciones || null,
+            },
+        });
+
+        return handleSuccess(res, 200, "Asistencia actualizada con éxito.", asignacionActualizada);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al actualizar la asistencia.", error);
+    }
+};

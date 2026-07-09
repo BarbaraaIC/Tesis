@@ -38,6 +38,9 @@ function App() {
         <Route path="/reservas" element={
           <ProtectRoutes><Reservas /></ProtectRoutes>
         } />
+        <Route path="/reservas" element={
+          <ProtectRoutes><Reservas /></ProtectRoutes>
+        } />
 
       </Route>
       </Routes>
