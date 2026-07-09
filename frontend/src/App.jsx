@@ -5,7 +5,6 @@ import Register from './pages/Register'
 import KinexCenter from './pages/KinexCenter'
 import Usuarios from './pages/Usuarios'
 import Reservas from './pages/Reservas'
-import Tratamientos from './pages/Tratamientos'
 import Servicios from './pages/Servicios'
 import ProtectRoutes from './components/ProtectRoutes'
 import Layout from './components/Layout'
@@ -29,10 +28,6 @@ function App() {
           <Usuarios />
         </ProtectRoutes>
       } />
-
-        <Route path="/tratamientos" element={
-          <ProtectRoutes><Tratamientos /></ProtectRoutes>
-        } />
 
         <Route path="/servicios" element={
         <ProtectRoutes rolesPermitidos={['administrador', 'profesional']}>

@@ -7,7 +7,7 @@ const router = Router();
 
 router.post('/crearTratamiento',authMiddleware, isAdminOrProfesional, crearTratamiento);
 router.get('/obtenerTratamientos', authMiddleware, obtenerTratamientos);
-router.get('/buscarTratamiento/:cod_tratamiento', authMiddleware, obtenerTratamientoPorId);
+router.get('/buscarTratamiento/:id_servicio', authMiddleware, obtenerTratamientoPorId);
 
 
 export default router;

@@ -1,34 +1,23 @@
-const API_URL = 'http://localhost:3000/api'
+import axios from './root.service.js';
 
-export async function getServicios(token) {
-    const response = await fetch(`${API_URL}/servicios/buscarServicio`, {
-        headers: {
-        Authorization: `Bearer ${token}`,
-    },
-})
-
-    if (!response.ok) {
-        throw new Error('Error al obtener servicios')
-    }
-
-    return response.json()
+export async function getServicios() {
+  try {
+    const response = await axios.get('/servicios/buscarServicio');
+    return response.data;
+  } catch (error) {
+    const backendMessage = error.response?.data?.message ||
+      'Error al obtener servicios';
+    throw new Error(backendMessage, { cause: error });
+  }
 }
 
-export async function crearServicio(token, servicio) {
-    const response = await fetch(`${API_URL}/servicios/crearServicio`, {
-        method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(servicio),
-})
-
-    const data = await response.json()
-
-    if (!response.ok) {
-        throw new Error(data.message || 'Error al crear el servicio')
-    }
-
-    return data
+export async function crearServicio(servicio) {
+  try {
+    const response = await axios.post('/servicios/crearServicio', servicio);
+    return response.data;
+  } catch (error) {
+    const backendMessage = error.response?.data?.message ||
+      'Error al crear el servicio';
+    throw new Error(backendMessage, { cause: error });
+  }
 }
