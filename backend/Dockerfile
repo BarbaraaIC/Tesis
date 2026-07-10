@@ -1,26 +1,17 @@
-# 1. Imagen base con Node
 FROM node:22-alpine
 
-# 2. Carpeta de trabajo dentro del contenedor
 WORKDIR /app
 
-# 3. Copiar package.json
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 
-# 4. Instalar dependencias
 RUN npm install
 
-# 5. Copiar todo el código
 COPY . .
 
-ARG VITE_BACKEND_URL
-ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+RUN npx prisma generate
 
-# 6. Build del frontend
-RUN npm run build
+EXPOSE 3000
 
-# 7. Instalar servidor estático
-RUN npm install -g serve
-
-# 8. Servir la app
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node src/index.js"]
