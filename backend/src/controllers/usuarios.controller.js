@@ -137,3 +137,75 @@ export const cambiarRolUsuario = async (req, res) => {
 /*export const ocultarUsuarios = async (req, res) => {
     REVISAR ESTO DESPUES DE AVANZAR CON LAS RESERVAS
 }*/
+
+export const actualizarUsuario = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { rol, sub } = req.usuario;
+
+        const usuarioExistente = await prisma.usuario.findUnique({
+            where: { id_usuario: parseInt(id) }
+        });
+
+        if (!usuarioExistente) {
+            return handleErrorClient(res, 404, "El usuario no existe.");
+        }
+
+        if (rol !== "administrador" && sub !== usuarioExistente.rut) {
+            return handleErrorClient(res, 403, "No tienes permiso para editar este usuario.");
+        }
+
+        const {
+            nombre, apellido, rut, correo, telefono, password, edad,
+            ocupacion, direccion, enfermedades, medicamentos,
+        } = req.body;
+
+        if (rut || correo || telefono) {
+            const filtroDuplicados = [];
+            if (rut) filtroDuplicados.push({ rut });
+            if (correo) filtroDuplicados.push({ correo });
+            if (telefono) filtroDuplicados.push({ telefono });
+
+            const duplicado = await prisma.usuario.findFirst({
+                where: {
+                    AND: [
+                        { id_usuario: { not: parseInt(id) } },
+                        { OR: filtroDuplicados }
+                    ]
+                }
+            });
+
+            if (duplicado) {
+                if (duplicado.rut === rut) return handleErrorClient(res, 400, "Ya existe este RUT.");
+                if (duplicado.correo === correo) return handleErrorClient(res, 400, "Ya existe este correo.");
+                if (duplicado.telefono === telefono) return handleErrorClient(res, 400, "Ya existe este teléfono.");
+            }
+        }
+
+        const datosActualizados = {};
+
+        if (nombre) datosActualizados.nombre = nombre;
+        if (apellido) datosActualizados.apellido = apellido;
+        if (rut) datosActualizados.rut = rut;
+        if (correo) datosActualizados.correo = correo;
+        if (telefono) datosActualizados.telefono = telefono;
+        if (edad) datosActualizados.edad = edad;
+        if (ocupacion) datosActualizados.ocupacion = ocupacion;
+        if (direccion) datosActualizados.direccion = direccion;
+        if (enfermedades !== undefined) datosActualizados.enfermedades = enfermedades || null;
+        if (medicamentos !== undefined) datosActualizados.medicamentos = medicamentos || null;
+
+        if (password) {
+            datosActualizados.password = await encryptPassword(password);
+        }
+
+        const usuarioActualizado = await prisma.usuario.update({
+            where: { id_usuario: parseInt(id) },
+            data: datosActualizados
+        });
+
+        return handleSuccess(res, 200, "Datos de usuario actualizado correctamente.", usuarioActualizado);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Hubo un problema en el servidor al datos del usuario.", error.message);
+    }
+}

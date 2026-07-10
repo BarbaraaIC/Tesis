@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import KinexCenter from './pages/KinexCenter'
 import Usuarios from './pages/Usuarios'
 import Reservas from './pages/Reservas'
+import Perfil from './pages/Perfil'
 import Servicios from './pages/Servicios'
 import ProtectRoutes from './components/ProtectRoutes'
 import Layout from './components/Layout'
@@ -38,8 +39,9 @@ function App() {
         <Route path="/reservas" element={
           <ProtectRoutes><Reservas /></ProtectRoutes>
         } />
-        <Route path="/reservas" element={
-          <ProtectRoutes><Reservas /></ProtectRoutes>
+
+        <Route path="/perfil" element={
+          <ProtectRoutes><Perfil /></ProtectRoutes>
         } />
 
       </Route>
