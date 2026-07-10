@@ -13,6 +13,9 @@ RUN npm install
 # 5. Copiar todo el código
 COPY . .
 
+ARG VITE_BACKEND_URL
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+
 # 6. Build del frontend
 RUN npm run build
 

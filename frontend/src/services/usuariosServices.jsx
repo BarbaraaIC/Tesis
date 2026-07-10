@@ -7,14 +7,20 @@ export async function getUsuarios(token) {
             Authorization: `Bearer ${token}`,
         },
     });
-   
-
     return response.data;
         
     } catch (error) {
         console.error("Error al obtener usuarios:", error);
         throw error;
-        
     }
-    
+}
+
+export async function actualizarUsuario(id, datos) {
+    try {
+        const response = await axios.patch(`/usuarios/actualizarDatos/${id}`, datos)
+        return response.data
+    } catch (error) {
+        console.error("Error al actualizar datos del usuario:", error)
+        throw error
+    }
 }

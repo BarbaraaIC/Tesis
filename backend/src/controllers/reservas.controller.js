@@ -35,3 +35,33 @@ export const crearReserva = async (req, res) => {
         return handleErrorServer(res, 500, "Error al registrar reserva", error.message);
     }
 }
+
+export const getReservasPorProfesional = async (req, res) => {
+    try {
+        const id_profesional = parseInt(req.params.id_profesional);
+
+        const reservas = await prisma.reserva.findMany({
+            where: {
+                asignacion: {
+                    id_profesional: id_profesional,
+                },
+            },
+            include: {
+                asignacion: {
+                    include: {
+                        usuario: true,
+                        tratamiento: true,
+                    },
+                },
+            },
+            orderBy: {
+                dia: "asc",
+            },
+        });
+
+        return handleSuccess(res, 200, "Reservas obtenidas con éxito.", reservas);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al obtener las reservas.", error);
+    }
+};
+

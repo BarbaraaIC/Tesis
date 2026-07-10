@@ -49,6 +49,15 @@ const Sidebar = () => {
         </button>
       </nav>
 
+      <nav className="flex flex-col gap-1">
+        <button
+          onClick={() => navigate('/perfil')}
+          className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
+        >
+          Perfil
+        </button>
+      </nav>
+
       <button
         onClick={handleLogout}
         className="mt-auto bg-red-400 text-white py-2 rounded-lg hover:bg-red-600 cursor-pointer"

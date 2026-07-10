@@ -3,7 +3,7 @@ services:
     image: postgres:16
     container_name: postgres_db
     ports:
-    - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: ${DB_USER:-usuario_tesis}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-clave_tesis_123}
@@ -11,7 +11,11 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-usuario_tesis} -d ${DB_NAME:-mydb_tesis}"]
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DB_USER:-usuario_tesis} -d ${DB_NAME:-mydb_tesis}',
+        ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -20,19 +24,14 @@ services:
 
   backend:
     build: ./backend
-    command: npm run dev
     container_name: backend_app
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:-usuario_tesis}
-      DB_PASSWORD: ${DB_PASSWORD:-clave_tesis_123}
-      DB_NAME: ${DB_NAME:-mydb_tesis}
+      JWT_SECRET: ${JWT_SECRET:-tu_clave_secreta_aqui}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@gmail.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://usuario_tesis:clave_tesis_123@db:5432/mydb_tesis?schema=public}
     depends_on:
       db:
         condition: service_healthy
@@ -40,16 +39,16 @@ services:
       - project_tesis
 
   frontend:
-    build: ./frontend
+    # build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
     container_name: frontend_app
-    command: npm run dev
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     ports:
-      - "8080:3000"
+      - '8080:3000'
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
     depends_on:
       - backend
     networks:
