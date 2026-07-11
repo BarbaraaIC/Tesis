@@ -5,7 +5,7 @@ import { crearReserva , getReservasPorProfesional, getReservasPorUsuario} from '
 
 const router = Router();
 router.get('/porUsuario/:id_usuario', getReservasPorUsuario);
-router.post('/crearReserva', authMiddleware, isAdminOrProfesional, crearReserva);
+router.post('/crearReserva', authMiddleware, crearReserva);
 router.get('/porProfesional/:id_profesional', authMiddleware, isAdminOrProfesional, getReservasPorProfesional);
 
 export default router;
