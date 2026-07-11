@@ -51,6 +51,15 @@ const Sidebar = () => {
 
       <nav className="flex flex-col gap-1">
         <button
+          onClick={() => navigate('/misHoras')}
+          className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
+        >
+          Horas
+        </button>
+      </nav>
+
+      <nav className="flex flex-col gap-1">
+        <button
           onClick={() => navigate('/perfil')}
           className="w-full text-left text-white hover:bg-[#039C9C] p-2 rounded"
         >
