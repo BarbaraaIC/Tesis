@@ -6,7 +6,7 @@ import { getTratamientosPorServicio } from '../services/tratamientosServices.jsx
 import { asignarTratamiento, getProfesionalesPorPaciente } from '../services/tratamientosAsigServices.jsx'
 import { crearReserva } from '../services/reservasServices.jsx'
 
-const DURACION_BLOQUE_MIN = 60
+const DURACION_BLOQUE_EN_MINUTOS = 60
 
 const HORARIO_ATENCION = {
   0: { apertura: '08:00', cierre: '20:00' },
@@ -46,7 +46,7 @@ function generarHorariosDelDia(fecha) {
   const minutoFin = horaAMinutos(horario.cierre)
 
   const horarios = []
-  for (let minuto = minutoInicio; minuto + DURACION_BLOQUE_MIN <= minutoFin; minuto += DURACION_BLOQUE_MIN) {
+  for (let minuto = minutoInicio; minuto + DURACION_BLOQUE_EN_MINUTOS <= minutoFin; minuto += DURACION_BLOQUE_EN_MINUTOS) {
     horarios.push(minutosAHora(minuto))
   }
   return horarios
@@ -60,7 +60,12 @@ function fechaAtexto(fecha) {
 }
 
 function esElMismoDia(fechaA, fechaB) {
-  if (!fechaA || !fechaB) return false
+  if (!fechaA) {
+    return false
+  }
+  if (!fechaB) {
+    return false
+  }
   return fechaAtexto(fechaA) === fechaAtexto(fechaB)
 }
 
@@ -76,7 +81,7 @@ function generarGrillaDelMes(fecha) {
 
   const celdas = []
 
-  for (let i = 0; i < primerDiaDelMes.getDay(); i++) {
+  for (let contador = 0; contador < primerDiaDelMes.getDay(); contador++) {
     celdas.push(null)
   }
 
@@ -87,9 +92,21 @@ function generarGrillaDelMes(fecha) {
   return celdas
 }
 
+function obtenerRolNormalizado(usuarioActual) {
+  if (!usuarioActual.rol) {
+    return ''
+  }
+  return usuarioActual.rol.toLowerCase()
+}
+
 const Reservas = () => {
   const { usuario, rol } = useAuth()
-  const rolActual = rol?.toLowerCase().trim()
+
+  let rolActual = ''
+  if (rol) {
+    rolActual = rol.toLowerCase().trim()
+  }
+
   const esPaciente = rolActual === 'paciente'
   const esProfesional = rolActual === 'profesional'
 
@@ -102,7 +119,7 @@ const Reservas = () => {
   const [cargandoTratamientos, setCargandoTratamientos] = useState(false)
   const [error, setError] = useState(null)
 
-  const [form, setForm] = useState({
+  const [formulario, setFormulario] = useState({
     id_usuario: '',
     id_profesional: '',
     id_servicio: '',
@@ -123,27 +140,38 @@ const Reservas = () => {
 
 
   useEffect(() => {
-    if (!usuario?.id_usuario) {
+    if (!usuario) {
+      return
+    }
+    if (!usuario.id_usuario) {
       return
     }
 
     const cargarProfesionalesDelPaciente = async () => {
       const respuesta = await getProfesionalesPorPaciente(usuario.id_usuario)
       setProfesionales(respuesta.data)
-      setForm((prev) => ({ ...prev, id_usuario: usuario.id_usuario }))
+      setFormulario((formularioAnterior) => {
+        return { ...formularioAnterior, id_usuario: usuario.id_usuario }
+      })
     }
 
     const cargarPacientesYProfesionales = async () => {
       const respuesta = await getUsuarios()
-      const listaCompleta = respuesta.data
+      const listaCompletaDeUsuarios = respuesta.data
 
-      const soloPacientes = listaCompleta.filter((u) => u.rol?.toLowerCase() === 'paciente')
+      const soloPacientes = listaCompletaDeUsuarios.filter((usuarioActual) => {
+        return obtenerRolNormalizado(usuarioActual) === 'paciente'
+      })
       setPacientes(soloPacientes)
 
       if (esProfesional) {
-        setForm((prev) => ({ ...prev, id_profesional: usuario.id_usuario }))
+        setFormulario((formularioAnterior) => {
+          return { ...formularioAnterior, id_profesional: usuario.id_usuario }
+        })
       } else {
-        const soloProfesionales = listaCompleta.filter((u) => u.rol?.toLowerCase() === 'profesional')
+        const soloProfesionales = listaCompletaDeUsuarios.filter((usuarioActual) => {
+          return obtenerRolNormalizado(usuarioActual) === 'profesional'
+        })
         setProfesionales(soloProfesionales)
       }
     }
@@ -159,18 +187,20 @@ const Reservas = () => {
         } else {
           await cargarPacientesYProfesionales()
         }
-      } catch (err) {
-        setError(err.message)
+      } catch (errorCapturado) {
+        setError(errorCapturado.message)
       } finally {
         setCargandoPagina(false)
       }
     }
 
     cargarDatosDeLaPagina()
-  }, [esPaciente, esProfesional, usuario?.id_usuario])
+  }, [esPaciente, esProfesional, usuario])
 
   useEffect(() => {
-    if (!mostrarExito) return
+    if (!mostrarExito) {
+      return
+    }
 
     const timer = setTimeout(() => {
       setMostrarExito(false)
@@ -179,26 +209,37 @@ const Reservas = () => {
     return () => clearTimeout(timer)
   }, [mostrarExito])
 
-  const actualizarCampo = (e) => {
-    const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+  const actualizarCampo = (evento) => {
+    const nombreCampo = evento.target.name
+    const valorCampo = evento.target.value
+    setFormulario((formularioAnterior) => {
+      return { ...formularioAnterior, [nombreCampo]: valorCampo }
+    })
   }
 
-  const cambiarServicio = async (e) => {
-    const idServicioElegido = e.target.value
+  const cambiarServicio = async (evento) => {
+    const idServicioElegido = evento.target.value
 
-    setForm((prev) => ({ ...prev, id_servicio: idServicioElegido, cod_tratamiento: '' }))
+    setFormulario((formularioAnterior) => {
+      return { ...formularioAnterior, id_servicio: idServicioElegido, cod_tratamiento: '' }
+    })
     setTratamientos([])
 
-    if (!idServicioElegido) return
+    if (!idServicioElegido) {
+      return
+    }
 
     setCargandoTratamientos(true)
     try {
       const respuesta = await getTratamientosPorServicio(idServicioElegido)
-      const lista = Array.isArray(respuesta.data) ? respuesta.data : [respuesta.data]
-      setTratamientos(lista)
-    } catch (err) {
-      console.error('no se pudieron cargar los tratamientos', err)
+
+      let listaDeTratamientos = respuesta.data
+      if (!Array.isArray(respuesta.data)) {
+        listaDeTratamientos = [respuesta.data]
+      }
+      setTratamientos(listaDeTratamientos)
+    } catch (errorCapturado) {
+      console.error('no se pudieron cargar los tratamientos', errorCapturado)
       setTratamientos([])
     } finally {
       setCargandoTratamientos(false)
@@ -206,26 +247,49 @@ const Reservas = () => {
   }
 
   const diasDelMes = generarGrillaDelMes(mesVisible)
-  const horariosDisponibles = diaSeleccionado ? generarHorariosDelDia(diaSeleccionado) : []
+
+  let horariosDisponibles = []
+  if (diaSeleccionado) {
+    horariosDisponibles = generarHorariosDelDia(diaSeleccionado)
+  }
 
   const irAlMesAnterior = () => {
-    setMesVisible((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+    setMesVisible((mesActual) => {
+      return new Date(mesActual.getFullYear(), mesActual.getMonth() - 1, 1)
+    })
   }
 
   const irAlMesSiguiente = () => {
-    setMesVisible((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+    setMesVisible((mesActual) => {
+      return new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 1)
+    })
   }
 
   const elegirDia = (fecha) => {
-    if (!fecha || yaPaso(fecha)) return
+    if (!fecha) {
+      return
+    }
+    if (yaPaso(fecha)) {
+      return
+    }
     setDiaSeleccionado(fecha)
     setHoraSeleccionada(null)
   }
 
   const limpiarFormulario = () => {
-    setForm({
-      id_usuario: esPaciente ? usuario?.id_usuario ?? '' : '',
-      id_profesional: esProfesional ? usuario?.id_usuario ?? '' : '',
+    let idUsuarioParaElFormulario = ''
+    if (esPaciente && usuario && usuario.id_usuario) {
+      idUsuarioParaElFormulario = usuario.id_usuario
+    }
+
+    let idProfesionalParaElFormulario = ''
+    if (esProfesional && usuario && usuario.id_usuario) {
+      idProfesionalParaElFormulario = usuario.id_usuario
+    }
+
+    setFormulario({
+      id_usuario: idUsuarioParaElFormulario,
+      id_profesional: idProfesionalParaElFormulario,
       id_servicio: '',
       cod_tratamiento: '',
       observaciones: '',
@@ -235,8 +299,8 @@ const Reservas = () => {
     setHoraSeleccionada(null)
   }
 
-  const reservar = async (e) => {
-    e.preventDefault()
+  const reservar = async (evento) => {
+    evento.preventDefault()
     setErrorFormulario('')
 
     if (!diaSeleccionado || !horaSeleccionada) {
@@ -247,14 +311,23 @@ const Reservas = () => {
     setEnviando(true)
 
     try {
+      let observacionesParaEnviar = formulario.observaciones
+      if (esPaciente) {
+        observacionesParaEnviar = ''
+      }
+
       const asignacion = await asignarTratamiento({
-        id_usuario: Number(form.id_usuario),
-        id_profesional: Number(form.id_profesional),
-        cod_tratamiento: Number(form.cod_tratamiento),
-        observaciones: esPaciente ? '' : form.observaciones,
+        id_usuario: Number(formulario.id_usuario),
+        id_profesional: Number(formulario.id_profesional),
+        cod_tratamiento: Number(formulario.cod_tratamiento),
+        observaciones: observacionesParaEnviar,
       })
 
-      const idAsignacion = asignacion.data?.id_asignacion
+      let idAsignacion = null
+      if (asignacion.data) {
+        idAsignacion = asignacion.data.id_asignacion
+      }
+
       if (!idAsignacion) {
         throw new Error('No se pudo obtener el id de la asignación creada')
       }
@@ -268,8 +341,8 @@ const Reservas = () => {
 
       limpiarFormulario()
       setMostrarExito(true)
-    } catch (err) {
-      setErrorFormulario(err.message)
+    } catch (errorCapturado) {
+      setErrorFormulario(errorCapturado.message)
     } finally {
       setEnviando(false)
     }
@@ -296,6 +369,21 @@ const Reservas = () => {
     )
   }
 
+  let claseContenedorSelectorPersonas = 'grid grid-cols-2 gap-4'
+  if (esPaciente || esProfesional) {
+    claseContenedorSelectorPersonas = 'grid grid-cols-1 gap-4'
+  }
+
+  let textoOpcionTratamiento = 'Selecciona un tratamiento'
+  if (cargandoTratamientos) {
+    textoOpcionTratamiento = 'Cargando...'
+  }
+
+  let textoBotonReservar = 'Reservar'
+  if (enviando) {
+    textoBotonReservar = 'Reservando...'
+  }
+
   return (
     <div className="max-w-4xl">
       {mostrarExito && (
@@ -320,14 +408,14 @@ const Reservas = () => {
         {errorFormulario && <p className="text-red-600 text-sm mb-4">{errorFormulario}</p>}
 
         <form onSubmit={reservar} className="flex flex-col gap-5">
-          <div className={esPaciente || esProfesional ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-4'}>
+          <div className={claseContenedorSelectorPersonas}>
             {!esPaciente && (
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Paciente</label>
-                <select name="id_usuario" value={form.id_usuario} onChange={actualizarCampo} required className="w-full border rounded-lg p-2 text-sm">
+                <select name="id_usuario" value={formulario.id_usuario} onChange={actualizarCampo} required className="w-full border rounded-lg p-2 text-sm">
                   <option value="">Selecciona un paciente</option>
-                  {pacientes.map((p) => (
-                    <option key={p.id_usuario} value={p.id_usuario}>{p.nombre} {p.apellido}</option>
+                  {pacientes.map((paciente) => (
+                    <option key={paciente.id_usuario} value={paciente.id_usuario}>{paciente.nombre} {paciente.apellido}</option>
                   ))}
                 </select>
               </div>
@@ -336,10 +424,10 @@ const Reservas = () => {
             {!esProfesional && (
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Profesional</label>
-                <select name="id_profesional" value={form.id_profesional} onChange={actualizarCampo} required className="w-full border rounded-lg p-2 text-sm">
+                <select name="id_profesional" value={formulario.id_profesional} onChange={actualizarCampo} required className="w-full border rounded-lg p-2 text-sm">
                   <option value="">Selecciona un profesional</option>
-                  {profesionales.map((p) => (
-                    <option key={p.id_usuario} value={p.id_usuario}>{p.nombre} {p.apellido}</option>
+                  {profesionales.map((profesionalActual) => (
+                    <option key={profesionalActual.id_usuario} value={profesionalActual.id_usuario}>{profesionalActual.nombre} {profesionalActual.apellido}</option>
                   ))}
                 </select>
               </div>
@@ -349,10 +437,10 @@ const Reservas = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Servicio</label>
-              <select name="id_servicio" value={form.id_servicio} onChange={cambiarServicio} required className="w-full border rounded-lg p-2 text-sm">
+              <select name="id_servicio" value={formulario.id_servicio} onChange={cambiarServicio} required className="w-full border rounded-lg p-2 text-sm">
                 <option value="">Selecciona un servicio</option>
-                {servicios.map((s) => (
-                  <option key={s.id_servicio} value={s.id_servicio}>{s.tipo_servicio}</option>
+                {servicios.map((servicioActual) => (
+                  <option key={servicioActual.id_servicio} value={servicioActual.id_servicio}>{servicioActual.tipo_servicio}</option>
                 ))}
               </select>
             </div>
@@ -361,15 +449,15 @@ const Reservas = () => {
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tratamiento</label>
               <select
                 name="cod_tratamiento"
-                value={form.cod_tratamiento}
+                value={formulario.cod_tratamiento}
                 onChange={actualizarCampo}
                 required
-                disabled={!form.id_servicio || cargandoTratamientos}
+                disabled={!formulario.id_servicio || cargandoTratamientos}
                 className="w-full border rounded-lg p-2 text-sm disabled:bg-gray-100"
               >
-                <option value="">{cargandoTratamientos ? 'Cargando...' : 'Selecciona un tratamiento'}</option>
-                {tratamientos.map((t) => (
-                  <option key={t.cod_tratamiento} value={t.cod_tratamiento}>{t.descripcion} (${t.costo})</option>
+                <option value="">{textoOpcionTratamiento}</option>
+                {tratamientos.map((tratamientoActual) => (
+                  <option key={tratamientoActual.cod_tratamiento} value={tratamientoActual.cod_tratamiento}>{tratamientoActual.descripcion} (${tratamientoActual.costo})</option>
                 ))}
               </select>
             </div>
@@ -378,7 +466,7 @@ const Reservas = () => {
           {!esPaciente && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Observaciones</label>
-              <textarea name="observaciones" value={form.observaciones} onChange={actualizarCampo} placeholder="Opcional" className="w-full border rounded-lg p-2 text-sm" />
+              <textarea name="observaciones" value={formulario.observaciones} onChange={actualizarCampo} placeholder="Opcional" className="w-full border rounded-lg p-2 text-sm" />
             </div>
           )}
 
@@ -399,15 +487,21 @@ const Reservas = () => {
               </div>
 
               <div className="grid grid-cols-7 gap-1">
-                {diasDelMes.map((fecha, index) => {
-                  if (!fecha) return <div key={'vacio-' + index} />
+                {diasDelMes.map((fecha, indice) => {
+                  if (!fecha) {
+                    return <div key={'vacio-' + indice} />
+                  }
 
                   const pasado = yaPaso(fecha)
                   const seleccionado = esElMismoDia(fecha, diaSeleccionado)
 
                   let clase = 'text-sm p-2 rounded-lg text-gray-600 hover:bg-[#505FB6]/10'
-                  if (pasado) clase = 'text-sm p-2 rounded-lg text-gray-300 cursor-not-allowed'
-                  if (seleccionado) clase = 'text-sm p-2 rounded-lg bg-[#505FB6] text-white'
+                  if (pasado) {
+                    clase = 'text-sm p-2 rounded-lg text-gray-300 cursor-not-allowed'
+                  }
+                  if (seleccionado) {
+                    clase = 'text-sm p-2 rounded-lg bg-[#505FB6] text-white'
+                  }
 
                   return (
                     <button type="button" key={fechaAtexto(fecha)} onClick={() => elegirDia(fecha)} disabled={pasado} className={clase}>
@@ -442,7 +536,7 @@ const Reservas = () => {
 
           <div className="flex justify-end mt-2">
             <button type="submit" disabled={enviando} className="px-4 py-2 rounded-lg bg-[#505FB6] text-white text-sm font-medium hover:bg-[#3f4d9e] disabled:opacity-50">
-              {enviando ? 'Reservando...' : 'Reservar'}
+              {textoBotonReservar}
             </button>
           </div>
         </form>
