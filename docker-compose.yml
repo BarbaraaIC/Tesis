@@ -38,17 +38,40 @@ services:
     networks:
       - project_tesis
 
+  # frontend:
+  #   # build: ./frontend
+  #   build:
+  #     context: ./frontend
+  #     args:
+  #       VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
+  #   container_name: frontend_app
+  #   ports:
+  #     - '8080:3000'
+  #   environment:
+  #     VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - project_tesis
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+
   frontend:
-    # build: ./frontend
-    build:
-      context: ./frontend
-      args:
-        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
+    build: ./frontend
     container_name: frontend_app
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - '8080:3000'
+      - "8080:3000"
+    #env_file:      
+     # - .env
     environment:
-      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
+      #VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
+      #environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     depends_on:
       - backend
     networks:

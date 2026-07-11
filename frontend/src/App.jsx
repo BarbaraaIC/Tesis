@@ -7,6 +7,7 @@ import Usuarios from './pages/Usuarios'
 import Reservas from './pages/Reservas'
 import Perfil from './pages/Perfil'
 import Servicios from './pages/Servicios'
+import Horas from './pages/Horas'
 import ProtectRoutes from './components/ProtectRoutes'
 import Layout from './components/Layout'
 
@@ -38,6 +39,10 @@ function App() {
 
         <Route path="/reservas" element={
           <ProtectRoutes><Reservas /></ProtectRoutes>
+        } />
+
+        <Route path="/misHoras" element={
+          <ProtectRoutes><Horas /></ProtectRoutes>
         } />
 
         <Route path="/perfil" element={

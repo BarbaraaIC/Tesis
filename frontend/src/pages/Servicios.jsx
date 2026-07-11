@@ -3,16 +3,37 @@ import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getServicios, crearServicio } from '../services/serviciosServices.jsx'
 import { getTratamientosPorServicio, crearTratamiento } from '../services/tratamientosServices.jsx'
 
+const TIPOS_SERVICIO = [
+  'Rehabilitación musculoesquelética',
+  'Terapia pulmonar respiratoria',
+  'Masoterapia',
+  'Estética corporal y facial',
+]
+
+const DESCRIPCIONES_TRATAMIENTO = [
+  'Desgarros',
+  'Esguinces',
+  'Fracturas',
+  'Masaje terapéutico',
+  'Relajación',
+  'Drenaje linfático',
+  'Reductivo',
+  'Anticelulítico',
+  'Modeladores',
+  'Limpieza facial',
+  'Rejuvenecimiento facial',
+]
+
 const Servicios = () => {
   const { rol } = useAuth()
 
   const [servicios, setServicios] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
   const [busqueda, setBusqueda] = useState('')
 
-  const [expandedServicio, setExpandedServicio] = useState(null)
+  const [servicioExpandido, setServicioExpandido] = useState(null)
   const [tratamientosPorServicio, setTratamientosPorServicio] = useState({})
   const [cargandoTratamientos, setCargandoTratamientos] = useState(false)
 
@@ -25,7 +46,7 @@ const Servicios = () => {
   const [guardando, setGuardando] = useState(false)
 
   const [mostrarModalTratamiento, setMostrarModalTratamiento] = useState(false)
-  const [servicioSeleccionado, setServicioSeleccionado] = useState(null)
+  const [servicioSeleccionado, setServicioSeleccionado] = useState('')
   const [nuevoTratamiento, setNuevoTratamiento] = useState({
     descripcion: '',
     costo: '',
@@ -38,12 +59,12 @@ const Servicios = () => {
 
   const cargarServicios = useCallback(async () => {
     try {
-      const data = await getServicios()
-      setServicios(data.data)
-    } catch (error) {
-      setError(error.message)
+      const respuesta = await getServicios()
+      setServicios(respuesta.data)
+    } catch (errorCapturado) {
+      setError(errorCapturado.message)
     } finally {
-      setLoading(false)
+      setCargando(false)
     }
   }, [])
 
@@ -59,37 +80,50 @@ const Servicios = () => {
     }
   }, [mostrarAlerta])
 
-const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
-  setCargandoTratamientos(true)
-  try {
-    const data = await getTratamientosPorServicio(id_servicio)
-    const tratamientosNormalizados = Array.isArray(data.data) ? data.data : [data.data]
-    setTratamientosPorServicio((prev) => ({ ...prev, [id_servicio]: tratamientosNormalizados }))
-  } catch {
-    setTratamientosPorServicio((prev) => ({ ...prev, [id_servicio]: [] }))
-  } finally {
-    setCargandoTratamientos(false)
-  }
-}, [])
+  const cargarTratamientosDeServicio = useCallback(async (idServicio) => {
+    setCargandoTratamientos(true)
+    try {
+      const respuesta = await getTratamientosPorServicio(idServicio)
 
-  const toggleExpandido = (id_servicio) => {
-    if (expandedServicio === id_servicio) {
-      setExpandedServicio(null)
+      let tratamientosNormalizados = respuesta.data
+      if (!Array.isArray(respuesta.data)) {
+        tratamientosNormalizados = [respuesta.data]
+      }
+
+      setTratamientosPorServicio((tratamientosAnteriores) => {
+        return { ...tratamientosAnteriores, [idServicio]: tratamientosNormalizados }
+      })
+    } catch {
+      setTratamientosPorServicio((tratamientosAnteriores) => {
+        return { ...tratamientosAnteriores, [idServicio]: [] }
+      })
+    } finally {
+      setCargandoTratamientos(false)
+    }
+  }, [])
+
+  const alternarExpansionServicio = (idServicio) => {
+    if (servicioExpandido === idServicio) {
+      setServicioExpandido(null)
       return
     }
 
-    setExpandedServicio(id_servicio)
-    if (!tratamientosPorServicio[id_servicio]) {
-      cargarTratamientosDeServicio(id_servicio)
+    setServicioExpandido(idServicio)
+    if (!tratamientosPorServicio[idServicio]) {
+      cargarTratamientosDeServicio(idServicio)
     }
   }
 
-  const handleChange = (e) => {
-    setNuevoServicio({ ...nuevoServicio, [e.target.name]: e.target.value })
+  const actualizarCampoServicio = (evento) => {
+    const nombreCampo = evento.target.name
+    const valorCampo = evento.target.value
+    setNuevoServicio((servicioAnterior) => {
+      return { ...servicioAnterior, [nombreCampo]: valorCampo }
+    })
   }
 
-  const handleCrear = async (e) => {
-    e.preventDefault()
+  const crearNuevoServicio = async (evento) => {
+    evento.preventDefault()
     setErrorModal('')
     setGuardando(true)
 
@@ -100,28 +134,37 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
       await cargarServicios()
       setMensajeAlerta('Servicio creado con éxito')
       setMostrarAlerta(true)
-    } catch (error) {
-      setErrorModal(error.message)
+    } catch (errorCapturado) {
+      setErrorModal(errorCapturado.message)
     } finally {
       setGuardando(false)
     }
   }
 
-
-  const abrirModalTratamiento = (id_servicio) => {
-    setServicioSeleccionado(id_servicio)
+  const abrirModalTratamiento = (idServicio) => {
+    setServicioSeleccionado(idServicio)
     setNuevoTratamiento({ descripcion: '', costo: '' })
     setErrorModalTratamiento('')
     setMostrarModalTratamiento(true)
   }
 
-  const handleChangeTratamiento = (e) => {
-    setNuevoTratamiento({ ...nuevoTratamiento, [e.target.name]: e.target.value })
+  const actualizarCampoTratamiento = (evento) => {
+    const nombreCampo = evento.target.name
+    const valorCampo = evento.target.value
+    setNuevoTratamiento((tratamientoAnterior) => {
+      return { ...tratamientoAnterior, [nombreCampo]: valorCampo }
+    })
   }
 
-  const handleCrearTratamiento = async (e) => {
-    e.preventDefault()
+  const crearNuevoTratamiento = async (evento) => {
+    evento.preventDefault()
     setErrorModalTratamiento('')
+
+    if (!servicioSeleccionado) {
+      setErrorModalTratamiento('Selecciona a qué servicio pertenece el tratamiento.')
+      return
+    }
+
     setGuardandoTratamiento(true)
 
     try {
@@ -134,17 +177,25 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
       await cargarTratamientosDeServicio(servicioSeleccionado)
       setMensajeAlerta('Tratamiento creado con éxito')
       setMostrarAlerta(true)
-    } catch (error) {
-      setErrorModalTratamiento(error.message)
+    } catch (errorCapturado) {
+      setErrorModalTratamiento(errorCapturado.message)
     } finally {
       setGuardandoTratamiento(false)
     }
   }
 
-  if (loading) return <p>Cargando servicios</p>
-  if (error) return <p className="text-red-500">{error}</p>
+  if (cargando) {
+    return <p>Cargando servicios</p>
+  }
 
-  const rolNormalizado = rol?.toLowerCase().trim()
+  if (error) {
+    return <p className="text-red-500">{error}</p>
+  }
+
+  let rolNormalizado = ''
+  if (rol) {
+    rolNormalizado = rol.toLowerCase().trim()
+  }
   const tieneAcceso = rolNormalizado === 'administrador' || rolNormalizado === 'profesional'
 
   if (!tieneAcceso) {
@@ -152,9 +203,13 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
   }
 
   const textoBusqueda = busqueda.toLowerCase()
-  const serviciosVisibles = servicios.filter((s) =>
-    s.tipo_servicio?.toLowerCase().includes(textoBusqueda)
-  )
+  const serviciosVisibles = servicios.filter((servicioActual) => {
+    let nombreServicio = ''
+    if (servicioActual.tipo_servicio) {
+      nombreServicio = servicioActual.tipo_servicio.toLowerCase()
+    }
+    return nombreServicio.includes(textoBusqueda)
+  })
 
   let textoBoton = 'Guardar'
   if (guardando) {
@@ -207,7 +262,7 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
         <input
           type="text"
           value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
+          onChange={(evento) => setBusqueda(evento.target.value)}
           placeholder="Buscar por nombre del servicio"
           className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#505FB6] focus:border-transparent"
         />
@@ -223,26 +278,31 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
             </tr>
           </thead>
           <tbody>
-            {serviciosVisibles.map((s, index) => {
-              const estaExpandido = expandedServicio === s.id_servicio
-              const listaTratamientos = tratamientosPorServicio[s.id_servicio]
+            {serviciosVisibles.map((servicioActual, indice) => {
+              const estaExpandido = servicioExpandido === servicioActual.id_servicio
+              const listaTratamientos = tratamientosPorServicio[servicioActual.id_servicio]
 
               let filaClase = 'border-t border-gray-100 hover:bg-[#505FB6]/5 transition-colors cursor-pointer'
-              if (index % 2 === 1) {
+              if (indice % 2 === 1) {
                 filaClase = 'border-t border-gray-100 bg-gray-50/50 hover:bg-[#505FB6]/5 transition-colors cursor-pointer'
+              }
+
+              let claseFlecha = 'w-4 h-4 transition-transform'
+              if (estaExpandido) {
+                claseFlecha = 'w-4 h-4 transition-transform rotate-90'
               }
 
               return (
                 <>
                   <tr
-                    key={s.id_servicio}
+                    key={servicioActual.id_servicio}
                     className={filaClase}
-                    onClick={() => toggleExpandido(s.id_servicio)}
+                    onClick={() => alternarExpansionServicio(servicioActual.id_servicio)}
                   >
                     <td className="p-3 text-gray-400">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`w-4 h-4 transition-transform ${estaExpandido ? 'rotate-90' : ''}`}
+                        className={claseFlecha}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -251,19 +311,19 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                     </td>
-                    <td className="p-3 text-gray-600">{s.tipo_servicio}</td>
-                    <td className="p-3 text-gray-600">{s.descripcion}</td>
+                    <td className="p-3 text-gray-600">{servicioActual.tipo_servicio}</td>
+                    <td className="p-3 text-gray-600">{servicioActual.descripcion}</td>
                   </tr>
 
                   {estaExpandido && (
-                    <tr key={`${s.id_servicio}-detalle`} className="bg-gray-50/70 border-t border-gray-100">
+                    <tr key={`${servicioActual.id_servicio}-detalle`} className="bg-gray-50/70 border-t border-gray-100">
                       <td></td>
                       <td colSpan={2} className="p-4">
                         <div className="flex items-center justify-end mb-3">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              abrirModalTratamiento(s.id_servicio)
+                            onClick={(evento) => {
+                              evento.stopPropagation()
+                              abrirModalTratamiento(servicioActual.id_servicio)
                             }}
                             className="text-xs font-medium text-[#505FB6] hover:text-[#3f4d9e]"
                           >
@@ -288,10 +348,10 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
                               </tr>
                             </thead>
                             <tbody>
-                              {listaTratamientos.map((t) => (
-                                <tr key={t.cod_tratamiento} className="border-t border-gray-100">
-                                  <td className="p-2 text-gray-600">{t.descripcion}</td>
-                                  <td className="p-2 text-gray-600">${t.costo}</td>
+                              {listaTratamientos.map((tratamientoActual) => (
+                                <tr key={tratamientoActual.cod_tratamiento} className="border-t border-gray-100">
+                                  <td className="p-2 text-gray-600">{tratamientoActual.descripcion}</td>
+                                  <td className="p-2 text-gray-600">${tratamientoActual.costo}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -318,20 +378,30 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
 
             {errorModal && <p className="text-red-600 text-sm mb-3">{errorModal}</p>}
 
-            <form onSubmit={handleCrear} className="flex flex-col gap-3">
-              <input
-                type="text"
-                name="tipo_servicio"
-                value={nuevoServicio.tipo_servicio}
-                onChange={handleChange}
-                placeholder="Nombre del servicio"
-                required
-                className="border rounded-lg p-2"
-              />
+            <form onSubmit={crearNuevoServicio} className="flex flex-col gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Tipo de servicio
+                </label>
+                <select
+                  name="tipo_servicio"
+                  value={nuevoServicio.tipo_servicio}
+                  onChange={actualizarCampoServicio}
+                  required
+                  className="w-full border rounded-lg p-2"
+                >
+                  <option value="">Selecciona un tipo de servicio</option>
+                  {TIPOS_SERVICIO.map((tipoServicioActual) => (
+                    <option key={tipoServicioActual} value={tipoServicioActual}>
+                      {tipoServicioActual}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <textarea
                 name="descripcion"
                 value={nuevoServicio.descripcion}
-                onChange={handleChange}
+                onChange={actualizarCampoServicio}
                 placeholder="Descripción"
                 required
                 className="border rounded-lg p-2"
@@ -360,22 +430,53 @@ const cargarTratamientosDeServicio = useCallback(async (id_servicio) => {
 
             {errorModalTratamiento && <p className="text-red-600 text-sm mb-3">{errorModalTratamiento}</p>}
 
-            <form onSubmit={handleCrearTratamiento} className="flex flex-col gap-3">
-              <textarea
-                name="descripcion"
-                value={nuevoTratamiento.descripcion}
-                onChange={handleChangeTratamiento}
-                placeholder="Descripción del tratamiento"
-                required
-                className="border rounded-lg p-2"
-              />
+            <form onSubmit={crearNuevoTratamiento} className="flex flex-col gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Servicio
+                </label>
+                <select
+                  name="id_servicio"
+                  value={servicioSeleccionado}
+                  onChange={(evento) => setServicioSeleccionado(evento.target.value)}
+                  required
+                  className="w-full border rounded-lg p-2"
+                >
+                  <option value="">Selecciona un servicio</option>
+                  {servicios.map((servicioActual) => (
+                    <option key={servicioActual.id_servicio} value={servicioActual.id_servicio}>
+                      {servicioActual.tipo_servicio}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Descripción
+                </label>
+                <select
+                  name="descripcion"
+                  value={nuevoTratamiento.descripcion}
+                  onChange={actualizarCampoTratamiento}
+                  required
+                  className="w-full border rounded-lg p-2"
+                >
+                  <option value="">Selecciona una descripción</option>
+                  {DESCRIPCIONES_TRATAMIENTO.map((descripcionActual) => (
+                    <option key={descripcionActual} value={descripcionActual}>
+                      {descripcionActual}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <input
                 type="number"
                 name="costo"
                 value={nuevoTratamiento.costo}
-                onChange={handleChangeTratamiento}
+                onChange={actualizarCampoTratamiento}
                 placeholder="Costo"
-                min="0"
+                min="100"
                 required
                 className="border rounded-lg p-2"
               />

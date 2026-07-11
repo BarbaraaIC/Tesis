@@ -15,19 +15,35 @@ const CAMPOS = [
     { name: 'medicamentos', label: 'Medicamentos', tipo: 'text'},
     ]
 
+function obtenerValorOTextoVacio(valor) {
+    if (valor) {
+        return valor
+    }
+    return ''
+}
+
+
+
 function armarFormDesdeUsuario(usuario) {
     return {
-        nombre: usuario.nombre ? usuario.nombre : '',
-        apellido: usuario.apellido ? usuario.apellido : '',
-        rut: usuario.rut ? usuario.rut : '',
-        correo: usuario.correo ? usuario.correo : '',
-        telefono: usuario.telefono ? usuario.telefono : '',
-        direccion: usuario.direccion ? usuario.direccion : '',
-        edad: usuario.edad ? usuario.edad : '',
-        ocupacion: usuario.ocupacion ? usuario.ocupacion : '',
-        enfermedades: usuario.enfermedades ? usuario.enfermedades : '',
-        medicamentos: usuario.medicamentos ? usuario.medicamentos : '',
+        nombre: obtenerValorOTextoVacio(usuario.nombre),
+        apellido: obtenerValorOTextoVacio(usuario.apellido),
+        rut: obtenerValorOTextoVacio(usuario.rut),
+        correo: obtenerValorOTextoVacio(usuario.correo),
+        telefono: obtenerValorOTextoVacio(usuario.telefono),
+        direccion: obtenerValorOTextoVacio(usuario.direccion),
+        edad: obtenerValorOTextoVacio(usuario.edad),
+        ocupacion: obtenerValorOTextoVacio(usuario.ocupacion),
+        enfermedades: obtenerValorOTextoVacio(usuario.enfermedades),
+        medicamentos: obtenerValorOTextoVacio(usuario.medicamentos),
     }
+}
+
+function obtenerClaseColumna(campo) {
+    if (campo.tipo === 'textarea') {
+        return 'col-span-2'
+    }
+    return ''
 }
 
 const Perfil = () => {
@@ -42,7 +58,9 @@ const Perfil = () => {
 
 
     useEffect(() => {
-        if (!mostrarExito) return
+        if (!mostrarExito) {
+            return
+        }
         const timer = setTimeout(() => setMostrarExito(false), 3000)
         return () => clearTimeout(timer)
     }, [mostrarExito])
@@ -56,76 +74,258 @@ const Perfil = () => {
         setModoEdicion(true)
     }
 
-    const actualizarCampo = (e) => {
-        const nombreCampo = e.target.name
-            let valor = e.target.value
+    const actualizarCampo = (evento) => {
+        const nombreCampo = evento.target.name
+        let valor = evento.target.value
 
-    if (nombreCampo === 'edad') {
-        valor = valor.replace(/[^0-9]/g, '')
+        if (nombreCampo === 'edad') {
+            valor = valor.replace(/[^0-9]/g, '')
             if (valor !== '' && Number(valor) > 99) {
                 valor = '99'
             }
-    }
+        }
 
-    setForm((prev) => ({ ...prev, [nombreCampo]: valor }))
+        setForm((formularioAnterior) => {
+            return { ...formularioAnterior, [nombreCampo]: valor }
+        })
     }
 
     const cancelarEdicion = () => {
         setNuevaPassword('')
-            setError('')
-                setModoEdicion(false)
-                    setForm(null)
+        setError('')
+        setModoEdicion(false)
+        setForm(null)
     }
 
-    const guardarCambios = async (e) => {
-        e.preventDefault()
-            setError('')
+    const guardarCambios = async (evento) => {
+        evento.preventDefault()
+        setError('')
 
-
-    if (form.edad !== '') {
-        const edadNumero = Number(form.edad)
+        if (form.edad !== '') {
+            const edadNumero = Number(form.edad)
             if (edadNumero < 1 || edadNumero > 99) {
                 setError('La edad debe ser un número entre 1 y 99.')
-                    return
+                return
             }
-    }
-
-    setGuardando(true)
-
-    try {
-        const datosAEnviar = {
-        ...form,
-            edad: form.edad === '' ? null : Number(form.edad),
         }
 
-        if (nuevaPassword.trim() !== '') {
-            datosAEnviar.password = nuevaPassword
-        }
+        setGuardando(true)
 
-        const respuesta = await actualizarUsuario(usuario.id_usuario, datosAEnviar)
+        try {
+            let edadParaEnviar = null
+            if (form.edad !== '') {
+                edadParaEnviar = Number(form.edad)
+            }
 
-        if (setUsuario) {
-            let datosActualizados = datosAEnviar
+            const datosAEnviar = {
+                ...form,
+                edad: edadParaEnviar,
+            }
+
+            if (nuevaPassword.trim() !== '') {
+                datosAEnviar.password = nuevaPassword
+            }
+
+            const respuesta = await actualizarUsuario(usuario.id_usuario, datosAEnviar)
+
+            if (setUsuario) {
+                let datosActualizados = datosAEnviar
                 if (respuesta && respuesta.data) {
                     datosActualizados = respuesta.data
                 }
-            const usuarioNuevo = { ...usuario, ...datosActualizados }
+                const usuarioNuevo = { ...usuario, ...datosActualizados }
                 setUsuario(usuarioNuevo)
+            }
+
+            setNuevaPassword('')
+            setModoEdicion(false)
+            setForm(null)
+            setMostrarExito(true)
+        } catch (errorCapturado) {
+            let mensaje = 'No se pudo actualizar el perfil'
+            if (errorCapturado.message) {
+                mensaje = errorCapturado.message
+            }
+            setError(mensaje)
+        } finally {
+            setGuardando(false)
+        }
+    }
+
+    const renderizarVistaPerfil = () => {
+        return (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                {CAMPOS.map((campo) => {
+                    const valor = usuario[campo.name]
+
+                    let textoAMostrar = '—'
+                    if (valor) {
+                        textoAMostrar = valor
+                    }
+
+                    return (
+                        <div key={campo.name} className={obtenerClaseColumna(campo)}>
+                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{campo.label}</p>
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap">{textoAMostrar}</p>
+                        </div>
+                    )
+                })}
+            </div>
+        )
+    }
+
+    const renderizarCampoDeEdicion = (campo) => {
+        if (campo.name === 'rut') {
+            return (
+                <input
+                    type="text"
+                    name={campo.name}
+                    value={form[campo.name]}
+                    disabled
+                    className="w-full border rounded-lg p-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+            )
         }
 
-        setNuevaPassword('')
-            setModoEdicion(false)
-                setForm(null)
-                    setMostrarExito(true)
-        } catch (err) {
-            let mensaje = 'No se pudo actualizar el perfil'
-                if (err.message) {
-                    mensaje = err.message
-                }
-        setError(mensaje)
-        } finally {
-        setGuardando(false)
+        if (campo.tipo === 'textarea') {
+            return (
+                <textarea
+                    name={campo.name}
+                    value={form[campo.name]}
+                    onChange={actualizarCampo}
+                    placeholder="Sin enfermedades registradas"
+                    className="w-full border rounded-lg p-2 text-sm"
+                    rows={3}
+                />
+            )
         }
+
+                if (campo.name === 'nombre') {
+            return (
+                <input
+                    type="text"
+                    name={campo.name}
+                    value={form[campo.name]}
+                    disabled
+                    className="w-full border rounded-lg p-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+            )
+        }
+
+        if (campo.tipo === 'textarea') {
+            return (
+                <textarea
+                    name={campo.name}
+                    value={form[campo.name]}
+                    onChange={actualizarCampo}
+                    placeholder="Sin enfermedades registradas"
+                    className="w-full border rounded-lg p-2 text-sm"
+                    rows={3}
+                />
+            )
+        }
+
+        
+                if (campo.name === 'apellido') {
+            return (
+                <input
+                    type="text"
+                    name={campo.name}
+                    value={form[campo.name]}
+                    disabled
+                    className="w-full border rounded-lg p-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+            )
+        }
+
+        if (campo.tipo === 'textarea') {
+            return (
+                <textarea
+                    name={campo.name}
+                    value={form[campo.name]}
+                    onChange={actualizarCampo}
+                    placeholder="Sin enfermedades registradas"
+                    className="w-full border rounded-lg p-2 text-sm"
+                    rows={3}
+                />
+            )
+        }
+
+        let tipoDeInput = campo.tipo
+        let modoDeEntrada = undefined
+        if (campo.name === 'edad') {
+            tipoDeInput = 'text'
+            modoDeEntrada = 'numeric'
+        }
+
+        return (
+            <input
+                type={tipoDeInput}
+                inputMode={modoDeEntrada}
+                name={campo.name}
+                value={form[campo.name]}
+                onChange={actualizarCampo}
+                className="w-full border rounded-lg p-2 text-sm"
+            />
+        )
+    }
+
+    const renderizarFormularioEdicion = () => {
+        return (
+            <form onSubmit={guardarCambios} className="flex flex-col gap-5">
+                <div className="grid grid-cols-2 gap-4">
+                    {CAMPOS.map((campo) => (
+                        <div key={campo.name} className={obtenerClaseColumna(campo)}>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                {campo.label}
+                            </label>
+                            {renderizarCampoDeEdicion(campo)}
+                        </div>
+                    ))}
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                            Nueva contraseña
+                        </label>
+                        <input
+                            type="password"
+                            value={nuevaPassword}
+                            onChange={(evento) => setNuevaPassword(evento.target.value)}
+                            placeholder="Cambio de contraseña"
+                            className="w-full border rounded-lg p-2 text-sm"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-2">
+                    <button
+                        type="button"
+                        onClick={cancelarEdicion}
+                        disabled={guardando}
+                        className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={guardando}
+                        className="px-4 py-2 rounded-lg bg-[#505FB6] text-white text-sm font-medium hover:bg-[#3f4d9e] disabled:opacity-50"
+                    >
+                        {textoBotonGuardar}
+                    </button>
+                </div>
+            </form>
+        )
+    }
+
+    let textoBotonGuardar = 'Guardar cambios'
+    if (guardando) {
+        textoBotonGuardar = 'Guardando...'
+    }
+
+    let contenidoPrincipal = renderizarVistaPerfil()
+    if (modoEdicion) {
+        contenidoPrincipal = renderizarFormularioEdicion()
     }
 
     return (
@@ -162,85 +362,7 @@ const Perfil = () => {
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-
-                    {!modoEdicion ? (
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                        {CAMPOS.map((campo) => {
-                        const valor = usuario[campo.name]
-                        return (
-                            <div key={campo.name} className={campo.tipo === 'textarea' ? 'col-span-2' : ''}>
-                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{campo.label}</p>
-                            <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                                {valor ? valor : '—'}
-                            </p>
-                            </div>
-                        )
-                        })}
-                    </div>
-                    ) : (
-                    <form onSubmit={guardarCambios} className="flex flex-col gap-5">
-                        <div className="grid grid-cols-2 gap-4">
-                        {CAMPOS.map((campo) => (
-                            <div key={campo.name} className={campo.tipo === 'textarea' ? 'col-span-2' : ''}>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                                {campo.label}
-                            </label>
-
-                            {campo.tipo === 'textarea' ? (
-                                <textarea
-                                name={campo.name}
-                                value={form[campo.name]}
-                                onChange={actualizarCampo}
-                                placeholder="Sin enfermedades registradas"
-                                className="w-full border rounded-lg p-2 text-sm"
-                                rows={3}
-                                />
-                            ) : (
-                                <input
-                                type={campo.name === 'edad' ? 'text' : campo.tipo}
-                                inputMode={campo.name === 'edad' ? 'numeric' : undefined}
-                                name={campo.name}
-                                value={form[campo.name]}
-                                onChange={actualizarCampo}
-                                className="w-full border rounded-lg p-2 text-sm"
-                                />
-                            )}
-                            </div>
-                        ))}
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                            Nueva contraseña
-                            </label>
-                            <input
-                            type="password"
-                            value={nuevaPassword}
-                            onChange={(e) => setNuevaPassword(e.target.value)}
-                            placeholder="Dejar en blanco para no cambiarla"
-                            className="w-full border rounded-lg p-2 text-sm"
-                            />
-                        </div>
-                        </div>
-
-                        <div className="flex justify-end gap-3 mt-2">
-                        <button
-                            type="button"
-                            onClick={cancelarEdicion}
-                            disabled={guardando}
-                            className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={guardando}
-                            className="px-4 py-2 rounded-lg bg-[#505FB6] text-white text-sm font-medium hover:bg-[#3f4d9e] disabled:opacity-50"
-                        >
-                            {guardando ? 'Guardando...' : 'Guardar cambios'}
-                        </button>
-                        </div>
-                    </form>
-                    )}
+                    {contenidoPrincipal}
                 </div>
             </div>
         </div>
