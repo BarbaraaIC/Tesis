@@ -65,3 +65,31 @@ export const getReservasPorProfesional = async (req, res) => {
     }
 };
 
+export const getReservasPorUsuario = async (req, res) => {
+    try {
+        const id_usuario = parseInt(req.params.id_usuario);
+
+        const reservas = await prisma.reserva.findMany({
+            where: {
+                asignacion: {
+                    id_usuario: id_usuario,
+                },
+            },
+            include: {
+                asignacion: {
+                    include: {
+                        profesional: true,
+                        tratamiento: true,
+                    },
+                },
+            },
+            orderBy: {
+                dia: "asc",
+            },
+        });
+
+        return handleSuccess(res, 200, "Reservas obtenidas con éxito.", reservas);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al obtener las reservas agendadas.", error);
+    }
+};
