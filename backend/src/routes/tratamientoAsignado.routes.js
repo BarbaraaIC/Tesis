@@ -5,7 +5,7 @@ import { asignarTratamiento, getProfesionalesPorPaciente, actualizarAsistencia }
 
 const router = Router();
 
-router.post('/asignar',authMiddleware, isAdminOrProfesional, asignarTratamiento);
+router.post('/asignar',authMiddleware, asignarTratamiento);
 router.get('/profesionalesPorPaciente/:id_usuario', authMiddleware, getProfesionalesPorPaciente);
 router.patch('/actualizarAsistencia/:id_asignacion', authMiddleware, isAdminOrProfesional, actualizarAsistencia);
 
