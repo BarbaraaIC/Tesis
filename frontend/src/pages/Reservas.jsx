@@ -6,9 +6,9 @@ import { getTratamientosPorServicio } from '../services/tratamientosServices.jsx
 import { asignarTratamiento, getProfesionalesPorPaciente } from '../services/tratamientosAsigServices.jsx'
 import { crearReserva, getReservasPorProfesional } from '../services/reservasServices.jsx'
 
-const DURACION_BLOQUE_EN_MINUTOS = 60
+const duracion_bloque_en_min = 60
 
-const HORARIO_ATENCION = {
+const horario_atencion = {
   0: { apertura: '08:00', cierre: '21:00' },
   1: { apertura: '08:00', cierre: '21:00' },
   2: { apertura: '08:00', cierre: '21:00' },
@@ -18,11 +18,11 @@ const HORARIO_ATENCION = {
   6: { apertura: '08:00', cierre: '19:00' },
 }
 
-const NOMBRES_MESES = [
+const nombre_meses = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
-const NOMBRES_DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const nombre_dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 
 function horaAMinutos(hora) {
@@ -40,13 +40,13 @@ function minutosAHora(totalMinutos) {
 
 function generarHorariosDelDia(fecha) {
   const diaDeLaSemana = fecha.getDay()
-  const horario = HORARIO_ATENCION[diaDeLaSemana]
+  const horario = horario_atencion[diaDeLaSemana]
 
   const minutoInicio = horaAMinutos(horario.apertura)
   const minutoFin = horaAMinutos(horario.cierre)
 
   const horarios = []
-  for (let minuto = minutoInicio; minuto + DURACION_BLOQUE_EN_MINUTOS <= minutoFin; minuto += DURACION_BLOQUE_EN_MINUTOS) {
+  for (let minuto = minutoInicio; minuto + duracion_bloque_en_min <= minutoFin; minuto += duracion_bloque_en_min) {
     horarios.push(minutosAHora(minuto))
   }
   return horarios
@@ -539,13 +539,13 @@ const Reservas = () => {
               <div className="flex items-center justify-between mb-3">
                 <button type="button" onClick={irAlMesAnterior} className="text-gray-400 hover:text-gray-700 px-2">‹</button>
                 <span className="text-sm font-semibold text-gray-700">
-                  {NOMBRES_MESES[mesVisible.getMonth()]} {mesVisible.getFullYear()}
+                  {nombre_meses[mesVisible.getMonth()]} {mesVisible.getFullYear()}
                 </span>
                 <button type="button" onClick={irAlMesSiguiente} className="text-gray-400 hover:text-gray-700 px-2">›</button>
               </div>
 
               <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-400 mb-1">
-                {NOMBRES_DIAS.map((dia) => <div key={dia}>{dia}</div>)}
+                {nombre_dias.map((dia) => <div key={dia}>{dia}</div>)}
               </div>
 
               <div className="grid grid-cols-7 gap-1">
