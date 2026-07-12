@@ -13,20 +13,37 @@ export const crearReserva = async (req, res) => {
         const asignacionTratamiento = parseInt(id_asignacion);
 
         const asignacionExiste = await prisma.tratamientoAsignado.findUnique({
-            where: { id_asignacion: asignacionTratamiento}
+            where: { id_asignacion: asignacionTratamiento },
         });
 
         if (!asignacionExiste) {
             return handleErrorClient(res, 404, "La asignación de tratamiento especificada no existe.");
         }
 
+        const fechaDia = new Date(dia);
+        const fechaHora = new Date(`${dia}T${hora}`);
+
+        const reservaExistente = await prisma.reserva.findFirst({
+            where: {
+                dia: fechaDia,
+                hora: fechaHora,
+                asignacion: {
+                    id_profesional: asignacionExiste.id_profesional,
+                },
+            },
+        });
+
+        if (reservaExistente) {
+            return handleErrorClient(res, 409, "Ese horario ya fue reservado por otra persona. Elige otro horario.");
+        }
+
         const nuevaReserva = await prisma.reserva.create({
             data: {
-                dia: new Date(dia),                     
-                hora: new Date(`${dia}T${hora}`),      
+                dia: fechaDia,
+                hora: fechaHora,
                 tiempo_estimado: new Date(`${dia}T${tiempo_estimado}`),
-                id_asignacion: asignacionTratamiento
-            }
+                id_asignacion: asignacionTratamiento,
+            },
         });
 
         return handleSuccess(res, 201, "Reserva agendada con éxito.", nuevaReserva);
