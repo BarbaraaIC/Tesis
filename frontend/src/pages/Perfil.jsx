@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { actualizarUsuario } from '../services/usuariosServices.jsx'
 
-const CAMPOS = [
+const campos = [
     { name: 'nombre', label: 'Nombre', tipo: 'text' },
     { name: 'apellido', label: 'Apellido', tipo: 'text' },
     { name: 'rut', label: 'Rut', tipo: 'text' },
@@ -155,7 +155,7 @@ const Perfil = () => {
     const renderizarVistaPerfil = () => {
         return (
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                {CAMPOS.map((campo) => {
+                {campos.map((campo) => {
                     const valor = usuario[campo.name]
 
                     let textoAMostrar = '—'
@@ -274,7 +274,7 @@ const Perfil = () => {
         return (
             <form onSubmit={guardarCambios} className="flex flex-col gap-5">
                 <div className="grid grid-cols-2 gap-4">
-                    {CAMPOS.map((campo) => (
+                    {campos.map((campo) => (
                         <div key={campo.name} className={obtenerClaseColumna(campo)}>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                                 {campo.label}

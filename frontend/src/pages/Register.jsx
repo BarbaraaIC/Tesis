@@ -1,6 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const ocupaciones = [
+    'Estudiante',
+    'Docencia',
+    'Trabajador/a independiente',
+    'Dueño/a de empresa',
+    'Administración',
+    'Ingeniería',
+    'Profesional salud',
+    'Obrero',
+    'Otra',
+]
 function Register (){
     const navigate = useNavigate()
     const [step, setStep] = useState(1)
@@ -12,16 +23,19 @@ function Register (){
     const [telefono, setTelefono] = useState('')
     const [password, setPassword] = useState('')
     const [edad, setEdad] = useState('')
-    const [ocupacion, setOcupacion] = useState('')
     const [direccion, setDireccion] = useState('')
     const [tieneEnfermedades, setTieneEnfermedades] = useState('no')
     const [enfermedades, setEnfermedades] = useState('')
     const [tieneMedicamentos, setTieneMedicamentos] = useState('no')
     const [medicamentos, setMedicamentos] = useState('')
+    const [ocupacion, setOcupacion] = useState('')
+    const [ocupacionOtra, setOcupacionOtra] = useState('')
 
     const handleSubmit = async (event) => {
         event.preventDefault();
             setError('');
+
+            const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
 
 try {
         const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {    
@@ -29,7 +43,7 @@ try {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            nombre, apellido, rut, correo, telefono, password, edad, ocupacion, direccion,
+            nombre, apellido, rut, correo, telefono, password, edad, ocupacion: ocupacionFinal, direccion,
             enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
             medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
         }),
@@ -167,19 +181,37 @@ return (
             )}
             {step === 3 && (
                 <>
-                <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ocupación</label>
-                        <input
-                            type="text"
-                            value={ocupacion}
-                            onChange={(e) => setOcupacion(e.target.value)}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
-                        />
-                </div>
+                
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ocupación</label>
+                <select
+                    value={ocupacion}
+                    onChange={(e) => setOcupacion(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
+                >
+                    <option value="">Selecciona una ocupación</option>
+                    {ocupaciones.map((ocupacionActual) => (
+                    <option key={ocupacionActual} value={ocupacionActual}>
+                        {ocupacionActual}
+                    </option>
+                    ))}
+            </select>
+
+            {ocupacion === 'Otra' && (
+                <input
+                type="text"
+                value={ocupacionOtra}
+                onChange={(e) => setOcupacionOtra(e.target.value)}
+                placeholder="Especifica tu ocupación"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
+                />
+            )}
+            </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">¿Tiene alguna enfermedad?</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">¿Algún antecedente de salud diagnosticado?</label>
                     <div className="flex gap-4">
                         <label className="flex items-center gap-1 cursor-pointer">
                             <input type="radio" name="tieneEnfermedades" value="no" checked={tieneEnfermedades === 'no'} onChange={() => setTieneEnfermedades('no')} /> No
@@ -199,7 +231,7 @@ return (
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">¿Toma algún medicamento?</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">¿Consume medicamentos?(describa)</label>
                     <div className="flex gap-4">
                         <label className="flex items-center gap-1 cursor-pointer">
                             <input type="radio" name="tieneMedicamentos" value="no" checked={tieneMedicamentos === 'no'} onChange={() => setTieneMedicamentos('no')} /> No
