@@ -12,10 +12,21 @@ const ocupaciones = [
     'Obrero',
     'Otra',
 ]
+
+const rut_val = /^\d{1,2}\.\d{3}\.\d{3}-[0-9kK]{1}$/
+const correo_val = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const telefono_val = /^(?:\+?56)?9[0-9]{8}$/
+const password_val = /^(?=.*\d)[^.,?= \s]{8,30}$/
+const ocupacion_val = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s/\-.]+$/
+const direccion_val = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9.,#-]+(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9.,#-]+)*$/
+const nombre_val = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]+)*$/
+const apellido_val = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]+)*$/
+
 function Register (){
     const navigate = useNavigate()
     const [step, setStep] = useState(1)
     const [error, setError] = useState('')
+    const [enviando, setEnviando] = useState(false)
     const [nombre, setNombre] = useState('')
     const [apellido, setApellido] = useState('')
     const [rut, setRut] = useState('')
@@ -31,32 +42,112 @@ function Register (){
     const [ocupacion, setOcupacion] = useState('')
     const [ocupacionOtra, setOcupacionOtra] = useState('')
 
+
+    const validarPaso1 = () => {
+        if (nombre.trim().length < 3 || !nombre_val.test(nombre.trim())) {
+            return 'El nombre debe tener al menos 3 caracteres y solo puede contener letras.'
+        }
+        if (apellido.trim().length < 3 || !apellido_val.test(apellido.trim())) {
+            return 'El apellido debe tener al menos 3 caracteres y solo puede contener letras.'
+        }
+        if (!rut_val.test(rut.trim())) {
+            return 'El RUT debe tener el formato xx.xxx.xxx-x (ej: 12.345.678-9).'
+        }
+        const edadNumero = Number(edad)
+        if (!edad || edadNumero < 1 || edadNumero > 99) {
+            return 'Ingresa una edad válida (entre 1 y 99).'
+        }
+        return ''
+    }
+
+    const validarPaso2 = () => {
+        if (!correo_val.test(correo.trim())) {
+            return 'Ingresa un correo electrónico válido.'
+        }
+        if (!telefono_val.test(telefono.trim())) {
+            return 'El celular debe empezar con 9 y tener 9 dígitos, ej: 912345678 o +56912345678.'
+        }
+        if (direccion.trim().length < 5 || !direccion_val.test(direccion.trim())) {
+            return 'La dirección debe tener al menos 5 caracteres y solo letras, números, espacios, puntos, comas, # o guiones.'
+        }
+        if (!password_val.test(password)) {
+            return 'La contraseña debe tener entre 8 y 30 caracteres'
+        }
+        return ''
+    }
+
+    const validarPaso3 = () => {
+        if (!ocupacion) {
+            return 'Selecciona una ocupación.'
+        }
+        if (ocupacion === 'Otra') {
+            const otraTrim = ocupacionOtra.trim()
+            if (otraTrim.length < 3 || !ocupacion_val.test(otraTrim)) {
+                return 'La ocupación debe tener al menos 3 caracteres y solo puede contener letras, espacios, / o -'
+            }
+        }
+        if (tieneEnfermedades === 'si' && !enfermedades.trim()) {
+            return 'Describe brevemente el antecedente de salud.'
+        }
+        if (tieneMedicamentos === 'si' && !medicamentos.trim()) {
+            return 'Describe los medicamentos que consumes.'
+        }
+        return ''
+    }
+
+    const irAlSiguientePaso = (siguientePaso) => {
+        let mensajeError = ''
+
+        if (step === 1) {
+            mensajeError = validarPaso1()
+        } else if (step === 2) {
+            mensajeError = validarPaso2()
+        }
+
+        if (mensajeError) {
+            setError(mensajeError)
+            return
+        }
+
+        setError('')
+        setStep(siguientePaso)
+    }
+
     const handleSubmit = async (event) => {
         event.preventDefault();
-            setError('');
+        setError('');
 
-            const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
+        const mensajeErrorPaso3 = validarPaso3()
+        if (mensajeErrorPaso3) {
+            setError(mensajeErrorPaso3)
+            return
+        }
 
-try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {    
-        //const res = await fetch('http://localhost:3000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            nombre, apellido, rut, correo, telefono, password, edad, ocupacion: ocupacionFinal, direccion,
-            enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
-            medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
-        }),
-        })
+        const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
 
-        const data = await res.json()
-            if (!res.ok) {
-                setError(data.message || 'Error al registrar.')
-                    return
-            }
-            navigate('/login')
-    } catch {
-        setError('Error de conexión con el servidor')
+        setEnviando(true)
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
+            //const res = await fetch('http://localhost:3000/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nombre, apellido, rut, correo, telefono, password, edad, ocupacion: ocupacionFinal, direccion,
+                enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
+                medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
+            }),
+            })
+
+            const data = await res.json()
+                if (!res.ok) {
+                    setError(data.message || 'Error al registrar.')
+                        return
+                }
+                navigate('/login')
+        } catch {
+            setError('Error de conexión con el servidor')
+        } finally {
+            setEnviando(false)
         }
     }
 
@@ -111,7 +202,7 @@ return (
                     <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
                         <input
                             type="number"
-                            min="1" max="110"
+                            min="1" max="99"
                             value={edad}
                             onChange={(e) => setEdad(e.target.value)}
                             required
@@ -119,7 +210,7 @@ return (
                         />
                 </div>
 
-                <button type="button" onClick={() => setStep(2)} className="w-full bg-[#04B6B6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
+                <button type="button" onClick={() => irAlSiguientePaso(2)} className="w-full bg-[#04B6B6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
                     Siguiente
                 </button>
                 </>
@@ -170,10 +261,10 @@ return (
                 </div>
 
                 <div className="flex gap-3">
-                    <button type="button" onClick={() => setStep(1)} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors cursor-pointer">
+                    <button type="button" onClick={() => { setError(''); setStep(1) }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors cursor-pointer">
                         Anterior
                     </button>
-                    <button type="button" onClick={() => setStep(3)} className="flex-1 bg-[#505FB6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
+                    <button type="button" onClick={() => irAlSiguientePaso(3)} className="flex-1 bg-[#505FB6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
                         Siguiente
                     </button>
                 </div>
@@ -186,7 +277,12 @@ return (
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ocupación</label>
                 <select
                     value={ocupacion}
-                    onChange={(e) => setOcupacion(e.target.value)}
+                    onChange={(e) => {
+                        setOcupacion(e.target.value)
+                        if (e.target.value !== 'Otra') {
+                            setOcupacionOtra('')
+                        }
+                    }}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
                 >
@@ -251,11 +347,11 @@ return (
                 </div>
 
                 <div className="flex gap-3">
-                    <button type="button" onClick={() => setStep(2)} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors cursor-pointer">
+                    <button type="button" onClick={() => { setError(''); setStep(2) }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors cursor-pointer">
                         Anterior
                     </button>
-                    <button type="submit" className="flex-1 bg-[#505FB6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
-                        Registrar
+                    <button type="submit" disabled={enviando} className="flex-1 bg-[#505FB6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer disabled:opacity-50">
+                        {enviando ? 'Registrando...' : 'Registrar'}
                     </button>
                 </div>
                 </>
