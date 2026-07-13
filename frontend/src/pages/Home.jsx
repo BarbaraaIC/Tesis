@@ -36,7 +36,10 @@ function Home() {
                     </ul>
             </nav>
 
-        <header className="relative">
+        <header
+            className="relative bg-cover bg-center"
+            style={{ backgroundImage: "url('/src/assets/kinex-center.jpg')" }}
+        >
             <div className="bg-black/45 flex flex-col items-center justify-center text-white px-4 py-20">
                 <h1 className="text-4xl md:text-6xl font-bold mb-2">KinexCenter</h1>
                     <p className="text-base md:text-lg mb-6 opacity-90">Kinesiología y Bienestar Integral</p>
@@ -56,11 +59,18 @@ function Home() {
                 con un enfoque profesional y cercano.
                         </p>
                 </div>
+                <div className="flex-1">
+                    <img
+                        src="/src/assets/quienes-somos.jpg"
+                        alt="Equipo de KinexCenter"
+                        className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm"
+                    />
+                </div>
             </div>
         </section>
 
     <section className="max-w-6xl mx-auto px-6 md:px-8 py-16 border-t border-gray-100">
-        <div className="flex flex-col md:flex-row gap-12">
+        <div className="flex flex-col md:flex-row gap-12 items-center">
             <div className="flex-1">
                 <h2 className="text-3xl font-bold mb-6 text-gray-900">¿Por qué elegirnos?</h2>
                     <ul className="space-y-3">
@@ -71,6 +81,13 @@ function Home() {
                             </li>
                         ))}
                     </ul>
+            </div>
+            <div className="flex-1">
+                <img
+                    src="/src/assets/porque-elegirnos.jpg"
+                    alt="Instalaciones de KinexCenter"
+                    className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm"
+                />
             </div>
         </div>
     </section>
@@ -152,8 +169,9 @@ function Home() {
             </div>
             <div>
                 <h3 className="text-black font-semibold mb-3">Horarios de atención</h3>
-                <p className="text-sm mb-1">Lunes - Viernes: 09:00 - 18:00</p>
-                <p className="text-sm">Sábado - Domingos: 10:00 - 14:00</p>
+                <p className="text-sm mb-1">Lunes - Viernes: 08:00 - 20:00</p>
+                <p className="text-sm">Sábado: 08:00 - 18:00</p>
+                <p className="text-sm">Domingos: 08:00 - 20:00</p>
             </div>
             </div>
         </footer>
