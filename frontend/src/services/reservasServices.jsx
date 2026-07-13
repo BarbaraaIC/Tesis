@@ -19,3 +19,13 @@ export async function getReservasPorUsuario(id_usuario) {
         throw new Error(backendMessage, { cause: error });
     }
 }
+
+export async function getReservasPorProfesional(id_profesional) {
+    try {
+        const response = await axios.get(`/reservas/porProfesional/${id_profesional}`);
+        return response.data;
+    } catch (error) {
+        const backendMessage = error.response?.data?.message || 'Error al obtener las reservas del profesional';
+        throw new Error(backendMessage, { cause: error });
+    }
+}

@@ -4,25 +4,25 @@ import { getUsuarios } from '../services/usuariosServices.jsx'
 import { getServicios } from '../services/serviciosServices.jsx'
 import { getTratamientosPorServicio } from '../services/tratamientosServices.jsx'
 import { asignarTratamiento, getProfesionalesPorPaciente } from '../services/tratamientosAsigServices.jsx'
-import { crearReserva } from '../services/reservasServices.jsx'
+import { crearReserva, getReservasPorProfesional } from '../services/reservasServices.jsx'
 
-const DURACION_BLOQUE_EN_MINUTOS = 60
+const duracion_bloque_en_min = 60
 
-const HORARIO_ATENCION = {
-  0: { apertura: '08:00', cierre: '20:00' },
-  1: { apertura: '08:00', cierre: '20:00' },
-  2: { apertura: '08:00', cierre: '20:00' },
-  3: { apertura: '08:00', cierre: '20:00' },
-  4: { apertura: '08:00', cierre: '20:00' },
-  5: { apertura: '08:00', cierre: '20:00' },
-  6: { apertura: '08:00', cierre: '18:00' },
+const horario_atencion = {
+  0: { apertura: '08:00', cierre: '21:00' },
+  1: { apertura: '08:00', cierre: '21:00' },
+  2: { apertura: '08:00', cierre: '21:00' },
+  3: { apertura: '08:00', cierre: '21:00' },
+  4: { apertura: '08:00', cierre: '21:00' },
+  5: { apertura: '08:00', cierre: '21:00' },
+  6: { apertura: '08:00', cierre: '19:00' },
 }
 
-const NOMBRES_MESES = [
+const nombre_meses = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
-const NOMBRES_DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const nombre_dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 
 function horaAMinutos(hora) {
@@ -40,13 +40,13 @@ function minutosAHora(totalMinutos) {
 
 function generarHorariosDelDia(fecha) {
   const diaDeLaSemana = fecha.getDay()
-  const horario = HORARIO_ATENCION[diaDeLaSemana]
+  const horario = horario_atencion[diaDeLaSemana]
 
   const minutoInicio = horaAMinutos(horario.apertura)
   const minutoFin = horaAMinutos(horario.cierre)
 
   const horarios = []
-  for (let minuto = minutoInicio; minuto + DURACION_BLOQUE_EN_MINUTOS <= minutoFin; minuto += DURACION_BLOQUE_EN_MINUTOS) {
+  for (let minuto = minutoInicio; minuto + duracion_bloque_en_min <= minutoFin; minuto += duracion_bloque_en_min) {
     horarios.push(minutosAHora(minuto))
   }
   return horarios
@@ -75,7 +75,7 @@ function yaPaso(fecha) {
   return fecha < hoy
 }
 
-function generarGrillaDelMes(fecha) {
+function generarDiasDelMes(fecha) {
   const primerDiaDelMes = new Date(fecha.getFullYear(), fecha.getMonth(), 1)
   const ultimoDiaDelMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0)
 
@@ -97,6 +97,33 @@ function obtenerRolNormalizado(usuarioActual) {
     return ''
   }
   return usuarioActual.rol.toLowerCase()
+}
+
+function horaDeReserva(reserva) {
+  const valorHora = reserva.hora
+
+  if (!valorHora) {
+    return ''
+  }
+
+  const coincidenciaISO = valorHora.match(/T(\d{2}):(\d{2})/)
+  if (coincidenciaISO) {
+    return coincidenciaISO[1] + ':' + coincidenciaISO[2]
+  }
+
+
+
+  const coincidenciaSimple = valorHora.match(/^(\d{2}):(\d{2})/)
+  if (coincidenciaSimple) {
+    return coincidenciaSimple[1] + ':' + coincidenciaSimple[2]
+  }
+
+  console.log("No se logro interpretar el formato de la hora", valorHora)
+  return ''
+}
+
+function fechaTextoDesdeISO(fechaISO) {
+  return fechaISO.slice(0, 10)
 }
 
 const Reservas = () => {
@@ -133,6 +160,7 @@ const Reservas = () => {
   })
   const [diaSeleccionado, setDiaSeleccionado] = useState(null)
   const [horaSeleccionada, setHoraSeleccionada] = useState(null)
+  const [horasOcupadas, setHorasOcupadas] = useState([])
 
   const [enviando, setEnviando] = useState(false)
   const [errorFormulario, setErrorFormulario] = useState('')
@@ -187,8 +215,8 @@ const Reservas = () => {
         } else {
           await cargarPacientesYProfesionales()
         }
-      } catch (errorCapturado) {
-        setError(errorCapturado.message)
+      } catch (error) {
+        setError(error.message)
       } finally {
         setCargandoPagina(false)
       }
@@ -208,6 +236,40 @@ const Reservas = () => {
 
     return () => clearTimeout(timer)
   }, [mostrarExito])
+
+  useEffect(() => {
+    const cargarHorasOcupadas = async () => {
+      if (!diaSeleccionado || !formulario.id_profesional) {
+        setHorasOcupadas([])
+        return
+      }
+
+      try {
+        const respuesta = await getReservasPorProfesional(formulario.id_profesional)
+        const todasLasReservas = respuesta.data
+
+        const reservasDelDiaSeleccionado = todasLasReservas.filter((reserva) => {
+          return fechaTextoDesdeISO(reserva.dia) === fechaAtexto(diaSeleccionado)
+        })
+
+        const horas = reservasDelDiaSeleccionado.map((reserva) => {
+          return horaDeReserva(reserva)
+        })
+
+        setHorasOcupadas(horas)
+      } catch (error) {
+        console.error("No se lograron mostrar las horas ocupadas", error)
+        setHorasOcupadas([])
+      }
+    }
+
+    cargarHorasOcupadas()
+  }, [diaSeleccionado, formulario.id_profesional])
+
+  let horaSeleccionadaValida = null
+  if (horaSeleccionada && !horasOcupadas.includes(horaSeleccionada)) {
+    horaSeleccionadaValida = horaSeleccionada
+  }
 
   const actualizarCampo = (evento) => {
     const nombreCampo = evento.target.name
@@ -238,15 +300,15 @@ const Reservas = () => {
         listaDeTratamientos = [respuesta.data]
       }
       setTratamientos(listaDeTratamientos)
-    } catch (errorCapturado) {
-      console.error('no se pudieron cargar los tratamientos', errorCapturado)
+    } catch (error) {
+      console.error("No se logro cargar los tratamientos", error)
       setTratamientos([])
     } finally {
       setCargandoTratamientos(false)
     }
   }
 
-  const diasDelMes = generarGrillaDelMes(mesVisible)
+  const diasDelMes = generarDiasDelMes(mesVisible)
 
   let horariosDisponibles = []
   if (diaSeleccionado) {
@@ -303,8 +365,8 @@ const Reservas = () => {
     evento.preventDefault()
     setErrorFormulario('')
 
-    if (!diaSeleccionado || !horaSeleccionada) {
-      setErrorFormulario('Selecciona un día y un horario en el calendario.')
+    if (!diaSeleccionado || !horaSeleccionadaValida) {
+      setErrorFormulario("Selecciona un día y un horario en el calendario.")
       return
     }
 
@@ -329,12 +391,12 @@ const Reservas = () => {
       }
 
       if (!idAsignacion) {
-        throw new Error('No se pudo obtener el id de la asignación creada')
+        throw new Error("No se logro obtener el id de la asignación creada")
       }
 
       await crearReserva({
         dia: fechaAtexto(diaSeleccionado),
-        hora: horaSeleccionada,
+        hora: horaSeleccionadaValida,
         tiempo_estimado: '01:00',
         id_asignacion: idAsignacion,
       })
@@ -477,13 +539,13 @@ const Reservas = () => {
               <div className="flex items-center justify-between mb-3">
                 <button type="button" onClick={irAlMesAnterior} className="text-gray-400 hover:text-gray-700 px-2">‹</button>
                 <span className="text-sm font-semibold text-gray-700">
-                  {NOMBRES_MESES[mesVisible.getMonth()]} {mesVisible.getFullYear()}
+                  {nombre_meses[mesVisible.getMonth()]} {mesVisible.getFullYear()}
                 </span>
                 <button type="button" onClick={irAlMesSiguiente} className="text-gray-400 hover:text-gray-700 px-2">›</button>
               </div>
 
               <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-400 mb-1">
-                {NOMBRES_DIAS.map((dia) => <div key={dia}>{dia}</div>)}
+                {nombre_dias.map((dia) => <div key={dia}>{dia}</div>)}
               </div>
 
               <div className="grid grid-cols-7 gap-1">
@@ -519,12 +581,24 @@ const Reservas = () => {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {horariosDisponibles.map((hora) => {
+                    const ocupada = horasOcupadas.includes(hora)
+                    const seleccionada = horaSeleccionadaValida === hora
+
                     let clase = 'text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:border-[#505FB6]'
-                    if (horaSeleccionada === hora) {
+                    if (ocupada) {
+                      clase = 'text-xs px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-red-300 line-through cursor-not-allowed'
+                    } else if (seleccionada) {
                       clase = 'text-xs px-3 py-2 rounded-lg border border-[#505FB6] bg-[#505FB6] text-white'
                     }
+
                     return (
-                      <button type="button" key={hora} onClick={() => setHoraSeleccionada(hora)} className={clase}>
+                      <button
+                        type="button"
+                        key={hora}
+                        onClick={() => setHoraSeleccionada(hora)}
+                        disabled={ocupada}
+                        className={clase}
+                      >
                         {hora}
                       </button>
                     )

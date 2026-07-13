@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getReservasPorUsuario } from '../services/reservasServices.jsx'
 
-const NOMBRES_MESES = [
+const nombre_meses = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
@@ -22,7 +22,7 @@ function formatearFechaLegible(textoFecha) {
   const mes = Number(partes[1])
   const dia = Number(partes[2])
 
-  return `${dia} de ${NOMBRES_MESES[mes - 1]} de ${año}`
+  return `${dia} de ${nombre_meses[mes - 1]} de ${año}`
 }
 
 function formatearHora(textoHora) {
