@@ -115,7 +115,7 @@ const MisReservas = () => {
   const reservasOrdenadas = ordenarPorFechaYHora(reservas)
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Mis horas reservadas</h2>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

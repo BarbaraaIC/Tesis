@@ -73,24 +73,26 @@ function Home() {
                 </div>
             </section>
 
-            <section className="max-w-6xl mx-auto px-6 md:px-8 py-16 border-t border-gray-100">
-                <div className="flex flex-col md:flex-row gap-12 items-center">
-                    <div className="flex-1">
-                        <h2 className="text-3xl font-bold mb-6 text-gray-900">¿Por qué elegirnos?</h2>
-                        <ul className="space-y-3">
-                            {beneficios.map((beneficio) => (
-                                <li key={beneficio} className="flex items-start gap-2 text-gray-700">
-                                    <span className="text-green-500 mt-0.5 shrink-0">✓</span>
-                                    <span>{beneficio}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div className="flex-1">
-                        <img src="/src/assets/porque-elegirnos.jpg" alt="Instalaciones" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
-                    </div>
-                </div>
-            </section>
+<section className="w-full bg-[#04B6B6] py-16 border-t border-gray-100">
+    <div className="max-w-6xl mx-auto px-6 md:px-8">
+        <div className="flex flex-col md:flex-row gap-12 items-center">
+            <div className="flex-1">
+                <h2 className="text-3xl font-bold mb-6 text-white">¿Por qué elegirnos?</h2>
+                <ul className="space-y-3">
+                    {beneficios.map((beneficio) => (
+                        <li key={beneficio} className="flex items-start gap-2 text-white">
+                            <span className="text-white mt-0.5 shrink-0">✓</span>
+                            <span>{beneficio}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+            <div className="flex-1">
+                <img src="/src/assets/porque-elegirnos.jpg" alt="Instalaciones" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
+            </div>
+        </div>
+    </div>
+</section>
 
             <section id="tratamientos" className="bg-gray-50 py-16">
                 <div className="max-w-6xl mx-auto px-6 md:px-8 text-center">
@@ -111,10 +113,6 @@ function Home() {
                             </div>
                         ))}
                     </div>
-                    
-                    <p className="text-[#505FB6] font-medium mt-8 cursor-pointer hover:underline inline-block">
-                        Mostrar más tratamientos →
-                    </p>
                 </div>
             </section>
 
