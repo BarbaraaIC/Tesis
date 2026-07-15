@@ -115,42 +115,42 @@ function Register (){
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setError('');
+            setError('');
 
-        const mensajeErrorPaso3 = validarPaso3()
-        if (mensajeErrorPaso3) {
-            setError(mensajeErrorPaso3)
-            return
-        }
+	const mensajeErrorPaso3 = validarPaso3()
+	if(mensajeErrorPaso3){
+		setError(mensajeErrorPaso3)
+		return
+	}
 
-        const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
+	const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
 
-        setEnviando(true)
-        try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
-            //const res = await fetch('http://localhost:3000/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                nombre, apellido, rut, correo, telefono, password, edad, ocupacion: ocupacionFinal, direccion,
-                enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
-                medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
-            }),
-            })
+	setEnviando(true)
 
-            const data = await res.json()
-                if (!res.ok) {
-                    setError(data.message || 'Error al registrar.')
-                        return
-                }
-                navigate('/login')
-        } catch {
-            setError('Error de conexión con el servidor')
-        } finally {
-            setEnviando(false)
-        }
-    }
+try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            nombre, apellido, rut, correo, telefono, password, edad, ocupacion: ocupacionFinal, direccion,
+            enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
+            medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
+        }),
+        })
 
+        const data = await res.json()
+            if (!res.ok) {
+                setError(data.message || 'Error al registrar.')
+                    return
+            }
+            navigate('/login')
+    } catch {
+        setError('Error de conexión con el servidor')
+	}finally {
+		setEnviando(false)
+	}
+     }
+ 
 return (
     <div className="min-h-screen flex items-center justify-center bg-[#04B6B6] px-4">
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
