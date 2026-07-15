@@ -100,11 +100,16 @@ export const obtenerUsuarios = async (req, res) => {
             });
 
             usuarios = tratamientos.map(t => t.usuario);
-        } else {
-            usuarios = await prisma.usuario.findMany({
-                where: { rut: sub }
-            });
-        }
+
+                } else if (rol === "paciente") {
+                usuarios = await prisma.usuario.findMany({
+                    where: { rol: "profesional" }
+                    });
+                } else {
+                    usuarios = await prisma.usuario.findMany({
+                        where: { rut: sub }
+                    });
+                }
 
         return handleSuccess(res, 200, "Usuarios obtenidos correctamente.", usuarios);
     } catch (error) {
