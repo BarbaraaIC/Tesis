@@ -1,12 +1,12 @@
-// DetalleTratamiento.jsx
+
 function DetalleTratamiento({ info, alCerrar, alReservar }) {
     return (
         <div className="bg-gray-50 min-h-screen flex flex-col justify-between">
             <nav className="flex items-center justify-between px-6 py-4 bg-[#04B6B6] text-white shadow-sm">
-                <span className="font-bold text-xl">KinexCenter</span>
                 <button onClick={alCerrar} className="text-sm underline cursor-pointer">
-                    ← Volver al Inicio
+                    Volver al Inicio
                 </button>
+                <span className="font-bold text-xl"> KinexCenter</span>
             </nav>
 
             <main className="max-w-2xl mx-auto px-6 py-16 flex-1 w-full flex items-center">
