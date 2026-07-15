@@ -222,7 +222,7 @@ const Servicios = () => {
   }
 
   return (
-    <div className="max-w-7xl">
+    <div className="max-w-4xl mx-auto">
       {mostrarAlerta && (
         <div className="fixed bottom-4 right-4 flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 min-w-[300px]">
           <span className="flex items-center justify-center w-5 h-5 bg-green-500 text-white rounded-full flex-shrink-0">

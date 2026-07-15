@@ -42,6 +42,15 @@ const Sidebar = ({ colapsado, setColapsado }) => {
     textoTitulo = usuario.nombre?.charAt(0).toUpperCase() || 'U'
   }
 
+  let contenidoTitulo = textoTitulo
+  if (colapsado) {
+    contenidoTitulo = (
+      <span className="flex items-center justify-center w-9 h-9 rounded-full bg-[#039C9C] mx-auto">
+        {textoTitulo}
+      </span>
+    )
+  }
+
   let alineacionItems = 'gap-3'
   if (colapsado) {
     alineacionItems = 'justify-center'
@@ -100,7 +109,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
       <h1
         className={`text-white font-bold mb-8 overflow-hidden transition-all duration-300 ${clasesTitulo}`}
       >
-        {textoTitulo}
+        {contenidoTitulo}
       </h1>
 
       <nav className="flex flex-col gap-1">

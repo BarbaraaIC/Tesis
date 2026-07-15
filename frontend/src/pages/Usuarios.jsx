@@ -164,7 +164,7 @@ const Usuarios = () => {
   })
 
   return (
-    <div className="max-w-7xl">
+    <div className="max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Búsqueda de Usuarios</h2>
 
       <div className="relative mb-6 max-w-sm">
