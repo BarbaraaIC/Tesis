@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getUsuarios } from '../services/usuariosServices.jsx'
 import { getServicios } from '../services/serviciosServices.jsx'
 import { getTratamientosPorServicio } from '../services/tratamientosServices.jsx'
-import { asignarTratamiento, getProfesionalesPorPaciente } from '../services/tratamientosAsigServices.jsx'
+import { asignarTratamiento} from '../services/tratamientosAsigServices.jsx'
 import { crearReserva, getReservasPorProfesional } from '../services/reservasServices.jsx'
 
 const duracion_bloque_en_min = 60
@@ -175,22 +175,20 @@ const Reservas = () => {
       return
     }
 
-    const cargarProfesionalesDelPaciente = async () => {
-      const respuesta = await getProfesionalesPorPaciente(usuario.id_usuario)
-      setProfesionales(respuesta.data)
-      setFormulario((formularioAnterior) => {
-        return { ...formularioAnterior, id_usuario: usuario.id_usuario }
-      })
-    }
-
     const cargarPacientesYProfesionales = async () => {
       const respuesta = await getUsuarios()
       const listaCompletaDeUsuarios = respuesta.data
 
-      const soloPacientes = listaCompletaDeUsuarios.filter((usuarioActual) => {
-        return obtenerRolNormalizado(usuarioActual) === 'paciente'
-      })
-      setPacientes(soloPacientes)
+      if (esPaciente) {
+        setFormulario((formularioAnterior) => {
+          return { ...formularioAnterior, id_usuario: usuario.id_usuario }
+        })
+      } else {
+        const soloPacientes = listaCompletaDeUsuarios.filter((usuarioActual) => {
+          return obtenerRolNormalizado(usuarioActual) === 'paciente'
+        })
+        setPacientes(soloPacientes)
+      }
 
       if (esProfesional) {
         setFormulario((formularioAnterior) => {
@@ -204,17 +202,13 @@ const Reservas = () => {
       }
     }
 
-    const cargarDatosDeLaPagina = async () => {
+     const cargarDatosDeLaPagina = async () => {
       setCargandoPagina(true)
       try {
         const respuestaServicios = await getServicios()
         setServicios(respuestaServicios.data)
 
-        if (esPaciente) {
-          await cargarProfesionalesDelPaciente()
-        } else {
-          await cargarPacientesYProfesionales()
-        }
+        await cargarPacientesYProfesionales()
       } catch (error) {
         setError(error.message)
       } finally {
@@ -418,18 +412,7 @@ const Reservas = () => {
     return <p className="text-red-500">{error}</p>
   }
 
-  if (esPaciente && profesionales.length === 0) {
-    return (
-      <div className="max-w-2xl">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Nueva reserva</h2>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <p className="text-sm text-gray-500">
-            Aún no tienes profesionales asignados, contacta al centro.
-          </p>
-        </div>
-      </div>
-    )
-  }
+
 
   let claseContenedorSelectorPersonas = 'grid grid-cols-2 gap-4'
   if (esPaciente || esProfesional) {
@@ -446,7 +429,7 @@ const Reservas = () => {
     textoBotonReservar = 'Reservando...'
   }
 
-  return (
+   return (
     <div className="max-w-4xl mx-auto">
       {mostrarExito && (
         <div className="fixed bottom-4 right-4 flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 min-w-[300px]">
@@ -573,6 +556,7 @@ const Reservas = () => {
                 })}
               </div>
             </div>
+
 
             {diaSeleccionado && (
               <div className="mt-3">
