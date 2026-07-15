@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import DetalleTratamiento from './DetalleTratamiento.jsx' 
+import kinexCenterImg from '../assets/kinex-center.jpg'
+import quienesSomosImg from '../assets/quienes-somos.jpg'
+import porqueElegirnosImg from '../assets/porque-elegirnos.jpg'
 
 const tratamientos = [
     { name: 'Masoterapia', description: 'Tratamiento terapéutico mediante masajes orientados a aliviar contracturas musculares, reducir el estrés y mejorar la circulación.' },
@@ -48,7 +51,7 @@ function Home() {
                 </ul>
             </nav>
 
-            <header className="relative bg-cover bg-center" style={{ backgroundImage: "url('/src/assets/kinex-center.jpg')" }}>
+            <header className="relative bg-cover bg-center" style={{ backgroundImage: `url(${kinexCenterImg})` }}>
                 <div id="inicio" className="bg-black/45 flex flex-col items-center justify-center text-white px-4 py-20">
                     <h1 className="text-4xl md:text-6xl font-bold mb-2">KinexCenter</h1>
                     <p className="text-base md:text-lg mb-6 opacity-90">Kinesiología y Bienestar Integral</p>
@@ -68,7 +71,7 @@ function Home() {
                         </p>
                     </div>
                     <div className="flex-1">
-                        <img src="/src/assets/quienes-somos.jpg" alt="Equipo" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
+                        <img src={quienesSomosImg} alt="Equipo" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
                     </div>
                 </div>
             </section>
