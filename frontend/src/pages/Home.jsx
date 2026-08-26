@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import DetalleTratamiento from './DetalleTratamiento.jsx' 
+import DetalleTratamiento from './DetalleTratamiento.jsx'
+import HomeReserva from '../components/HomeReserva.jsx'
 
 const tratamientos = [
     { name: 'Masoterapia', description: 'Tratamiento terapéutico mediante masajes orientados a aliviar contracturas musculares, reducir el estrés y mejorar la circulación.' },
@@ -23,7 +24,7 @@ const testimonios = [
 
 function Home() {
     const navegar = useNavigate()
-    
+
     const [tratamientoActivo, setTratamientoActivo] = useState(null)
 
     if (tratamientoActivo) {
@@ -31,7 +32,7 @@ function Home() {
             <DetalleTratamiento 
                 info={tratamientoActivo} 
                 alCerrar={() => setTratamientoActivo(null)} 
-                alReservar={() => navegar('/login')}
+                alReservar={() => navegar('/reservas')}
             />
         )
     }
@@ -52,9 +53,7 @@ function Home() {
                 <div id="inicio" className="bg-black/45 flex flex-col items-center justify-center text-white px-4 py-20">
                     <h1 className="text-4xl md:text-6xl font-bold mb-2">KinexCenter</h1>
                     <p className="text-base md:text-lg mb-6 opacity-90">Kinesiología y Bienestar Integral</p>
-                    <button onClick={() => navegar('/login')} className="bg-[#505FB6] text-white px-8 py-3 rounded-lg font-medium transition-colors cursor-pointer">
-                        Reservar hora
-                    </button>
+                    <HomeReserva />
                 </div>
             </header>
 

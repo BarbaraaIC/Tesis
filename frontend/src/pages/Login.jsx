@@ -30,7 +30,12 @@ try {
             localStorage.setItem('token', data.data.token)
             localStorage.setItem('usuario', JSON.stringify(data.data.user || {}))
             //localStorage.setItem('usuario', JSON.stringify(data.data.usuario || {}))
-        navigate('/kinex-center')
+            const pending = sessionStorage.getItem('pendingReserva')
+            if (pending) {
+                navigate('/reservas')
+            } else {
+                navigate('/kinex-center')
+            }
     } catch {
         setError('Error de conexión con el servidor')
         }

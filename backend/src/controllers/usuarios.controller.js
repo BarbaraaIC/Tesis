@@ -117,6 +117,24 @@ export const obtenerUsuarios = async (req, res) => {
     }
 };
 
+export const obtenerProfesionales = async (req, res) => {
+    try {
+        const profesionales = await prisma.usuario.findMany({
+            where: { rol: "profesional" },
+            select: {
+                id_usuario: true,
+                nombre: true,
+                apellido: true,
+                rol: true,
+            },
+        });
+
+        return handleSuccess(res, 200, "Profesionales obtenidos correctamente.", profesionales);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al obtener profesionales.", error.message);
+    }
+};
+
 
 export const cambiarRolUsuario = async (req, res) => {
     try {
