@@ -5,7 +5,7 @@ import { getUsuarios, getProfesionales } from '../services/usuariosServices.jsx'
 import { getServicios } from '../services/serviciosServices.jsx'
 import { getTratamientosPorServicio } from '../services/tratamientosServices.jsx'
 import { asignarTratamiento} from '../services/tratamientosAsigServices.jsx'
-import { crearReserva, getReservasPorProfesional } from '../services/reservasServices.jsx'
+import { crearReserva, getDisponibilidadPorProfesional } from '../services/reservasServices.jsx'
 
 const duracion_bloque_en_min = 60
 
@@ -255,7 +255,7 @@ const Reservas = () => {
       }
 
       try {
-        const respuesta = await getReservasPorProfesional(formulario.id_profesional)
+        const respuesta = await getDisponibilidadPorProfesional(formulario.id_profesional)
         const todasLasReservas = respuesta.data
 
         const reservasDelDiaSeleccionado = todasLasReservas.filter((reserva) => {
@@ -268,7 +268,7 @@ const Reservas = () => {
 
         setHorasOcupadas(horas)
       } catch (error) {
-        console.error("No se lograron mostrar las horas ocupadas", error)
+        console.error("No se lograron encontrar las horas ocupadas", error)
         setHorasOcupadas([])
       }
     }

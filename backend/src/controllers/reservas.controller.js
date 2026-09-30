@@ -82,6 +82,35 @@ export const getReservasPorProfesional = async (req, res) => {
     }
 };
 
+export const getDisponibilidadPorProfesional = async (req, res) => {
+    try {
+        const id_profesional = parseInt(req.params.id_profesional);
+
+        if (!id_profesional){
+            return handleErrorClient(res, 400, "El id del profesional no es válido.");
+        }
+
+        const reservas = await prisma.reserva.findMany({
+            where: {
+                asignacion: {
+                    id_profesional: id_profesional,
+                },
+            },
+            select: {
+                dia: true,
+                hora: true,
+            },
+            orderBy: {
+                dia: "asc",
+            },
+        });
+
+        return handleSuccess(res, 200, "Disponibilidad obtenida con éxito.", reservas);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al obtener la disponibilidad.", error.message);
+    }
+};
+
 export const getReservasPorUsuario = async (req, res) => {
     try {
         const id_usuario = parseInt(req.params.id_usuario);

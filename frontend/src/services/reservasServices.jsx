@@ -29,3 +29,13 @@ export async function getReservasPorProfesional(id_profesional) {
         throw new Error(backendMessage, { cause: error });
     }
 }
+
+export const getDisponibilidadPorProfesional = async (id_profesional) => {
+  try {
+    const response = await axios.get(`/reservas/disponibilidad/${id_profesional}`);
+    return response.data;
+  } catch (error) {
+    const backendMessage = error.response?.data?.message || 'Error al obtener la disponibilidad del profesional';
+    throw new Error(backendMessage, { cause: error });
+  }
+};
