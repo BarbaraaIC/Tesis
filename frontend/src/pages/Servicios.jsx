@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, Fragment } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
-import { getServicios, crearServicio, eliminarServicio } from '../services/serviciosServices.jsx'
-import { getTratamientosPorServicio, crearTratamiento } from '../services/tratamientosServices.jsx'
+import { getServicios, crearServicio } from '../services/serviciosServices.jsx'
+import { getTratamientosPorServicio, crearTratamiento, cambiarEstadoTratamiento} from '../services/tratamientosServices.jsx'
 
 const TIPOS_SERVICIO = [
   'Rehabilitación musculoesquelética',
@@ -184,7 +184,7 @@ const crearNuevoTratamiento = async (evento) => {
     }
 }
 //eliminar servicio
-  const handleEliminarServicio = async (id_servicio) => {
+ /* const handleEliminarServicio = async (id_servicio) => {
   if (!id_servicio) return
 
   const servicio = servicios.find((servicioActual) => {
@@ -211,21 +211,39 @@ const crearNuevoTratamiento = async (evento) => {
     setError(errorCapturado.message)
   }
 }
+*/
 
-  //eliminar tratamiento
-  const handleEliminarTratamiento = (idServicio, codTratamiento) => {
-    if (!window.confirm('¿Deseas eliminar este tratamiento?')) return
+// activar / desactivar tratamiento
+const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
+  const tratamiento = (tratamientosPorServicio[idServicio] || []).find(
+    (t) => t.cod_tratamiento === codTratamiento,
+  )
+  const accion = tratamiento?.activo ? 'desactivar' : 'activar'
+
+  if (!window.confirm(`¿Deseas ${accion} este tratamiento?`)) return
+
+  try {
+    const respuesta = await cambiarEstadoTratamiento(codTratamiento)
+    const nuevoEstado = respuesta?.data?.activo ?? !tratamiento?.activo
 
     setTratamientosPorServicio((tratamientosAnteriores) => ({
       ...tratamientosAnteriores,
-      [idServicio]: (tratamientosAnteriores[idServicio] || []).filter(
-        (tratamientoActual) => tratamientoActual.cod_tratamiento !== codTratamiento,
+      [idServicio]: (tratamientosAnteriores[idServicio] || []).map(
+        (tratamientoActual) =>
+          tratamientoActual.cod_tratamiento === codTratamiento
+            ? { ...tratamientoActual, activo: nuevoEstado }
+            : tratamientoActual,
       ),
     }))
 
-    setMensajeAlerta('Tratamiento eliminado con éxito')
+    setMensajeAlerta(
+      nuevoEstado ? 'Tratamiento activado con éxito' : 'Tratamiento desactivado con éxito',
+    )
     setMostrarAlerta(true)
+  } catch (errorCapturado) {
+    setError(errorCapturado.message)
   }
+}
 
   if (cargando) {
     return <p>Cargando servicios</p>
@@ -360,7 +378,7 @@ const crearNuevoTratamiento = async (evento) => {
                       <button
                         onClick={(evento) => {
                           evento.stopPropagation()
-                          handleEliminarServicio(servicioActual.id_servicio)
+                          handleCambiarEstadoTratamiento(servicioActual.id_servicio)
                         }}
                         className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
                       >
@@ -410,14 +428,15 @@ const crearNuevoTratamiento = async (evento) => {
                                   <td className="p-2 text-center">
                                     <button
                                       onClick={() =>
-                                        handleEliminarTratamiento(
-                                          servicioActual.id_servicio,
-                                          tratamientoActual.cod_tratamiento,
-                                        )
+                                        handleCambiarEstadoTratamiento(servicioActual.id_servicio, tratamientoActual.cod_tratamiento)
                                       }
-                                      className="bg-red-500 hover:bg-red-600 text-white px-2 py-0.5 rounded text-xs"
+                                      className={`text-white px-2 py-0.5 rounded text-xs ${
+                                        tratamientoActual.activo
+                                          ? 'bg-orange-500 hover:bg-orange-600'
+                                          : 'bg-green-500 hover:bg-green-600'
+                                      }`}
                                     >
-                                      Eliminar
+                                      {tratamientoActual.activo ? 'Desactivar' : 'Activar'}
                                     </button>
                                   </td>
                                 </tr>
