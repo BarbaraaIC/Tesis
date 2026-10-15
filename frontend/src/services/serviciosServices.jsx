@@ -21,3 +21,14 @@ export async function crearServicio(servicio) {
     throw new Error(backendMessage, { cause: error });
   }
 }
+
+export async function eliminarServicio(id_servicio) {
+  try {
+    const response = await axios.delete(`/servicios/eliminarServicio/${id_servicio}`);
+    return response.data;
+  } catch (error) {
+    const backendMessage = error.response?.data?.message ||
+      'Error al eliminar el servicio';
+    throw new Error(backendMessage, { cause: error });
+  }
+}   

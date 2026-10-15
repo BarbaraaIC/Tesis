@@ -8,7 +8,7 @@ const router = Router();
 router.post('/crearServicio', authMiddleware, isAdminOrProfesional, crearServicio);
 router.patch('/editarServicio/:id_servicio', authMiddleware, isAdminOrProfesional, editarServicio);
 router.get('/buscarServicio', obtenerServicios)
-router.delete('/eliminarServicio/:tipo_servicio',authMiddleware, isAdminOrProfesional, eliminarServicio);
+router.delete('/eliminarServicio/:id_servicio',authMiddleware, isAdminOrProfesional, eliminarServicio);
 
 export default router;
 

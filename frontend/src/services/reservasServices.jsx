@@ -39,3 +39,14 @@ export const getDisponibilidadPorProfesional = async (id_profesional) => {
     throw new Error(backendMessage, { cause: error });
   }
 };
+
+export const cancelarReserva = async (id_reserva) => {
+    try {
+        const response = await axios.delete(`/reservas/cancelar/${id_reserva}`);
+        return response.data;
+    }
+    catch (error) {
+        const backendMessage = error.response?.data?.message || 'Error al cancelar la reserva';
+        throw new Error(backendMessage, { cause: error });
+    }
+}

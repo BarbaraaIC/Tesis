@@ -128,13 +128,15 @@ export const obtenerServicios = async (req, res) => {
         return handleErrorServer(res, 500, "Error al obtener servicios.", error.message);
     }
 }
-
 export const eliminarServicio = async (req, res) => {
     try {
-        const { tipo_servicio} = req.params;
+        const id_servicio = parseInt(req.params.id_servicio, 10);
+        if (isNaN(id_servicio)) {
+            return handleErrorClient(res, 400, "ID de servicio inválido.");
+        }
 
-        const servicioExistente = await prisma.servicio.findFirst({
-            where: { tipo_servicio: tipo_servicio }
+        const servicioExistente = await prisma.servicio.findUnique({
+            where: { id_servicio }
         });
 
         if (!servicioExistente) {
@@ -142,7 +144,7 @@ export const eliminarServicio = async (req, res) => {
         }
 
         await prisma.servicio.delete({
-            where: { id_servicio: servicioExistente.id_servicio}
+            where: { id_servicio }
         });
 
         return handleSuccess(res, 200, "Servicio eliminado correctamente.");

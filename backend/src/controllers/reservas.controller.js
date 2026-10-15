@@ -139,3 +139,32 @@ export const getReservasPorUsuario = async (req, res) => {
         return handleErrorServer(res, 500, "Error al obtener las reservas agendadas.", error);
     }
 };
+
+export const cancelarReserva = async (req, res) => {
+    try {
+        const cod_reserva = parseInt(req.params.cod_reserva);
+        if (!cod_reserva) {
+            return handleErrorClient(res, 400, "El código de la reserva no es válido.");
+        }
+
+        const reserva = await prisma.reserva.findUnique({
+            where: {
+                cod_reserva: cod_reserva,
+            },
+        });
+
+        if (!reserva) {
+            return handleErrorClient(res, 404, "La reserva no fue encontrada.");
+        }
+
+        await prisma.reserva.delete({
+            where: {
+                cod_reserva: cod_reserva,e
+            },
+        });
+
+        return handleSuccess(res, 200, "Reserva cancelada con éxito.", reserva);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al cancelar la reserva.", error.message);
+    }
+};
