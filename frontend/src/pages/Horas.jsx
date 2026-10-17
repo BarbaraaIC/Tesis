@@ -1,41 +1,85 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
-import { getReservasPorUsuario, getReservasPorProfesional } from '../services/reservasServices.jsx'
+import { getReservas, getReservasPorUsuario, getReservasPorProfesional } from '../services/reservasServices.jsx'
 
-const nombre_meses = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+const nombre_meses_cortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
+const nombre_dias_cortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
+
+// Colores con buen contraste con texto blanco; se asignan por tratamiento
+const colores_tratamiento = ['#0E7C7C', '#505FB6', '#B45309', '#9D174D', '#4D7C0F']
+
+const filtros = [
+  { clave: 'todas', texto: 'Todas' },
+  { clave: 'proximas', texto: 'Próximas' },
+  { clave: 'pasadas', texto: 'Pasadas' },
 ]
 
-function formatearFechaLegible(textoFecha) {
-  if (!textoFecha) {
-    return '—'
-  }
-
-  const soloFecha = textoFecha.split('T')[0] 
-  const partes = soloFecha.split('-')
-  if (partes.length !== 3) {
-    return textoFecha
-  }
-
-  const año = partes[0]
-  const mes = Number(partes[1])
-  const dia = Number(partes[2])
-
-  return `${dia} de ${nombre_meses[mes - 1]} de ${año}`
+function pad(numero) {
+  return String(numero).padStart(2, '0')
 }
 
-function formatearHora(textoHora) {
+function fechaDeHoyTexto() {
+  const hoy = new Date()
+  return hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate())
+}
+
+// "2026-10-16T00:00:00.000Z" -> "2026-10-16"
+function soloFecha(textoFecha) {
+  if (!textoFecha) {
+    return ''
+  }
+  return textoFecha.slice(0, 10)
+}
+
+// Acepta "16:00", "16:00:00" o "1970-01-01T16:00:00.000Z" -> "16:00"
+function extraerHora(textoHora) {
   if (!textoHora) {
+    return ''
+  }
+  const coincidencia = textoHora.match(/(\d{2}):(\d{2})/)
+  if (!coincidencia) {
+    return ''
+  }
+  return coincidencia[1] + ':' + coincidencia[2]
+}
+
+// "16:00 – 17:00". Usa tiempo_estimado si viene; si no, 1 hora.
+function calcularRangoHora(reserva) {
+  const inicio = extraerHora(reserva.hora)
+  if (!inicio) {
     return '—'
   }
 
-  const partes = textoHora.split('T')
-  if (partes.length !== 2) {
-    return textoHora
+  const partesInicio = inicio.split(':')
+  const minutoInicio = Number(partesInicio[0]) * 60 + Number(partesInicio[1])
+
+  let duracion = 60
+  const textoDuracion = extraerHora(reserva.tiempo_estimado)
+  if (textoDuracion) {
+    const partesDuracion = textoDuracion.split(':')
+    const minutosDuracion = Number(partesDuracion[0]) * 60 + Number(partesDuracion[1])
+    if (minutosDuracion > 0) {
+      duracion = minutosDuracion
+    }
   }
 
-  return partes[1].substring(0, 5) 
+  const minutoFin = minutoInicio + duracion
+  const horaFin = pad(Math.floor(minutoFin / 60) % 24) + ':' + pad(minutoFin % 60)
+  return inicio + ' – ' + horaFin
+}
+
+function partesDeFecha(textoFecha) {
+  const partes = textoFecha.split('-')
+  const año = Number(partes[0])
+  const mes = Number(partes[1])
+  const dia = Number(partes[2])
+  // Se crea con año/mes/día locales para evitar desfases por zona horaria
+  const fecha = new Date(año, mes - 1, dia)
+  return {
+    dia: dia,
+    mes: nombre_meses_cortos[mes - 1],
+    diaSemana: nombre_dias_cortos[fecha.getDay()],
+  }
 }
 
 function obtenerNombreProfesional(reserva) {
@@ -78,11 +122,19 @@ function obtenerDescripcionTratamiento(reserva) {
   return '—'
 }
 
+function colorDeTratamiento(descripcion) {
+  let suma = 0
+  for (let i = 0; i < descripcion.length; i++) {
+    suma += descripcion.charCodeAt(i)
+  }
+  return colores_tratamiento[suma % colores_tratamiento.length]
+}
+
 function ordenarPorFechaYHora(reservas) {
   const copia = [...reservas]
   copia.sort((reservaA, reservaB) => {
-    const claveA = `${reservaA.dia} ${reservaA.hora}`
-    const claveB = `${reservaB.dia} ${reservaB.hora}`
+    const claveA = `${soloFecha(reservaA.dia)} ${extraerHora(reservaA.hora)}`
+    const claveB = `${soloFecha(reservaB.dia)} ${extraerHora(reservaB.hora)}`
     if (claveA < claveB) {
       return -1
     }
@@ -94,18 +146,36 @@ function ordenarPorFechaYHora(reservas) {
   return copia
 }
 
+function agruparPorDia(reservasOrdenadas) {
+  const grupos = []
+  const grupoPorFecha = {}
+
+  reservasOrdenadas.forEach((reserva) => {
+    const fecha = soloFecha(reserva.dia)
+    if (!grupoPorFecha[fecha]) {
+      grupoPorFecha[fecha] = { fecha: fecha, reservas: [] }
+      grupos.push(grupoPorFecha[fecha])
+    }
+    grupoPorFecha[fecha].reservas.push(reserva)
+  })
+
+  return grupos
+}
+
 const MisReservas = () => {
   const { usuario, rol } = useAuth()
 
   const [reservas, setReservas] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
+  const [filtro, setFiltro] = useState('todas')
 
   let rolActual = ''
   if (rol) {
     rolActual = rol.toLowerCase().trim()
   }
   const esProfesional = rolActual === 'profesional'
+  const esAdministrador = rolActual === 'administrador'
 
   useEffect(() => {
     if (!usuario) {
@@ -118,9 +188,14 @@ const MisReservas = () => {
     const cargarReservas = async () => {
       setCargando(true)
       try {
-        const respuesta = esProfesional
-          ? await getReservasPorProfesional(usuario.id_usuario)
-          : await getReservasPorUsuario(usuario.id_usuario)
+        let respuesta
+        if (esAdministrador) {
+          respuesta = await getReservas()
+        } else if (esProfesional) {
+          respuesta = await getReservasPorProfesional(usuario.id_usuario)
+        } else {
+          respuesta = await getReservasPorUsuario(usuario.id_usuario)
+        }
 
         setReservas(respuesta.data)
       } catch (errorCapturado) {
@@ -131,7 +206,7 @@ const MisReservas = () => {
     }
 
     cargarReservas()
-  }, [usuario, esProfesional])
+  }, [usuario, esProfesional, esAdministrador])
 
   if (cargando) {
     return <p>Cargando tus horas reservadas...</p>
@@ -141,54 +216,165 @@ const MisReservas = () => {
     return <p className="text-red-500">{error}</p>
   }
 
+  const hoy = fechaDeHoyTexto()
   const reservasOrdenadas = ordenarPorFechaYHora(reservas)
+
+  const reservasFiltradas = reservasOrdenadas.filter((reserva) => {
+    const fecha = soloFecha(reserva.dia)
+    if (filtro === 'proximas') {
+      return fecha >= hoy
+    }
+    if (filtro === 'pasadas') {
+      return fecha < hoy
+    }
+    return true
+  })
+
+  const grupos = agruparPorDia(reservasFiltradas)
+  if (filtro === 'pasadas') {
+    // En "Pasadas" se muestra primero lo más reciente
+    grupos.reverse()
+  }
+
+  const hayGrupoHoy = grupos.some((grupo) => grupo.fecha === hoy)
+
+  const irAHoy = () => {
+    const elemento = document.getElementById('grupo-hoy')
+    if (elemento) {
+      elemento.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
+
+  const claseBotonBase = 'px-4 py-2 rounded-lg border text-sm font-medium transition-colors min-h-[44px]'
+  const claseBotonInactivo = 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+  const claseBotonActivo = 'border-[#04B6B6] bg-[#04B6B6] text-[#042f2f]'
 
   const tituloColumnaPersona = esProfesional ? 'Paciente' : 'Profesional'
 
+  let tituloPagina = 'Mis horas reservadas'
+  let mensajeVacio = 'Aún no tienes horas reservadas.'
+  if (esAdministrador) {
+    tituloPagina = 'Horas reservadas'
+    mensajeVacio = 'Aún no hay horas reservadas.'
+  }
+  if (reservas.length > 0 && filtro === 'proximas') {
+    mensajeVacio = 'No tienes horas próximas.'
+  }
+  if (reservas.length > 0 && filtro === 'pasadas') {
+    mensajeVacio = 'No tienes horas pasadas.'
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Mis horas reservadas</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">{tituloPagina}</h2>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <button
+          type="button"
+          onClick={irAHoy}
+          disabled={!hayGrupoHoy}
+          className={claseBotonBase + ' ' + claseBotonInactivo + ' disabled:opacity-50 disabled:cursor-not-allowed'}
+        >
+          Hoy
+        </button>
+
+        {filtros.map((filtroActual) => {
+          let clase = claseBotonBase + ' ' + claseBotonInactivo
+          if (filtro === filtroActual.clave) {
+            clase = claseBotonBase + ' ' + claseBotonActivo
+          }
+
+          return (
+            <button
+              type="button"
+              key={filtroActual.clave}
+              onClick={() => setFiltro(filtroActual.clave)}
+              aria-pressed={filtro === filtroActual.clave}
+              className={clase}
+            >
+              {filtroActual.texto}
+            </button>
+          )
+        })}
+      </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-[#04B6B6] text-left text-black-500 uppercase text-xs tracking-wide">
-              <th className="p-3 font-semibold">Fecha</th>
-              <th className="p-3 font-semibold">Hora</th>
-              <th className="p-3 font-semibold">{tituloColumnaPersona}</th>
-              <th className="p-3 font-semibold">Tratamiento</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reservasOrdenadas.map((reserva, indice) => {
-              let filaClase = 'border-t border-gray-100'
-              if (indice % 2 === 1) {
-                filaClase = 'border-t border-gray-100 bg-gray-50/50'
-              }
+        {grupos.map((grupo, indice) => {
+          const fecha = partesDeFecha(grupo.fecha)
+          const esHoy = grupo.fecha === hoy
+          const esPasado = grupo.fecha < hoy
 
-              let nombrePersona;
+          let claseGrupo = 'grid grid-cols-[84px_1fr] sm:grid-cols-[132px_1fr] px-4 sm:px-6 py-4'
+          if (indice > 0) {
+            claseGrupo = claseGrupo + ' border-t border-gray-200'
+          }
+          if (esHoy) {
+            claseGrupo = claseGrupo + ' bg-[#505FB6]/5'
+          }
 
-                if (esProfesional) {
-                    nombrePersona = obtenerNombrePaciente(reserva);
-                } else {
-                    nombrePersona = obtenerNombreProfesional(reserva);
-                }
+          let claseNumero = 'text-3xl font-medium leading-none text-gray-900'
+          let claseEtiqueta = 'text-xs text-gray-600 mt-1'
+          let textoEtiqueta = fecha.mes + ' · ' + fecha.diaSemana
+          if (esHoy) {
+            claseNumero = 'text-3xl font-medium leading-none text-[#505FB6]'
+            claseEtiqueta = 'text-xs text-[#505FB6] font-semibold mt-1'
+            textoEtiqueta = 'HOY · ' + fecha.diaSemana
+          }
 
+          let claseTextoEvento = 'text-gray-800'
+          if (esPasado) {
+            claseTextoEvento = 'text-gray-500'
+          }
 
-              return (
-                <tr key={reserva.id_reserva} className={filaClase}>
-                  <td className="p-3 text-gray-800">{formatearFechaLegible(reserva.dia)}</td>
-                  <td className="p-3 text-gray-600">{formatearHora(reserva.hora)}</td>
-                  <td className="p-3 text-gray-600">{nombrePersona}</td>
-                  <td className="p-3 text-gray-600">{obtenerDescripcionTratamiento(reserva)}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+          return (
+            <div key={grupo.fecha} id={esHoy ? 'grupo-hoy' : undefined} className={claseGrupo}>
+              <div>
+                <div className={claseNumero}>{fecha.dia}</div>
+                <div className={claseEtiqueta}>{textoEtiqueta}</div>
+              </div>
 
-        {reservasOrdenadas.length === 0 && (
-          <p className="p-6 text-center text-gray-400 text-sm">Aún no tienes horas reservadas.</p>
+              <div className="flex flex-col gap-1">
+                {grupo.reservas.map((reserva) => {
+                  const descripcion = obtenerDescripcionTratamiento(reserva)
+
+                  let nombrePersona
+                  if (esAdministrador || esProfesional) {
+                    nombrePersona = obtenerNombrePaciente(reserva)
+                  } else {
+                    nombrePersona = obtenerNombreProfesional(reserva)
+                  }
+
+                  return (
+                    <div
+                      key={reserva.cod_reserva}
+                      className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-3 py-2 rounded-lg text-sm hover:bg-gray-100"
+                    >
+                      <span className="flex items-center gap-3 sm:w-[140px] shrink-0 text-gray-700">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: colorDeTratamiento(descripcion) }}
+                        />
+                        {calcularRangoHora(reserva)}
+                      </span>
+                      <span className={'flex-1 font-semibold ' + claseTextoEvento}>{descripcion}</span>
+                      <span className="sm:w-[240px] text-gray-600" title={tituloColumnaPersona}>
+                        {nombrePersona}
+                        {esAdministrador && (
+                          <span className="block text-xs text-gray-500">
+                            Prof. {obtenerNombreProfesional(reserva)}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+
+        {grupos.length === 0 && (
+          <p className="p-6 text-center text-gray-400 text-sm">{mensajeVacio}</p>
         )}
       </div>
     </div>

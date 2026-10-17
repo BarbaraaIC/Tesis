@@ -10,6 +10,16 @@ export async function crearReserva(reserva) {
     }
 }
 
+export async function getReservas() {
+    try {
+        const response = await axios.get('reservas/reservasTodas');
+        return response.data;
+    } catch (error) {
+        const backendMessage = error.response?.data?.message || 'Error al obtener todas las reservas';
+        throw new Error(backendMessage, { cause: error });
+    }
+}
+
 export async function getReservasPorUsuario(id_usuario) {
     try {
         const response = await axios.get(`/reservas/porUsuario/${id_usuario}`);

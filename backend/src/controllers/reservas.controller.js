@@ -53,6 +53,32 @@ export const crearReserva = async (req, res) => {
     }
 }
 
+
+export const getReservas = async (req, res) => {
+    try {
+        const reservas = await prisma.reserva.findMany({
+            include: {
+                asignacion: {
+                    include: {
+                        usuario: {
+                            select: { id_usuario: true, nombre: true, apellido: true },
+                        },
+                        profesional: {
+                            select: { id_usuario: true, nombre: true, apellido: true },
+                        },
+                        tratamiento: true,
+                    },
+                },
+            },
+            orderBy: [{ dia: "asc" }, { hora: "asc" }],
+        });
+
+        return handleSuccess(res, 200, "Reservas obtenidas con éxito.", reservas);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al obtener todas las reservas.", error.message);
+    }
+};
+
 export const getReservasPorProfesional = async (req, res) => {
     try {
         const id_profesional = parseInt(req.params.id_profesional);
@@ -159,7 +185,7 @@ export const cancelarReserva = async (req, res) => {
 
         await prisma.reserva.delete({
             where: {
-                cod_reserva: cod_reserva,e
+                cod_reserva: cod_reserva,
             },
         });
 
