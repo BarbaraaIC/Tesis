@@ -166,7 +166,7 @@ const Reservas = () => {
   const [errorFormulario, setErrorFormulario] = useState('')
   const [mostrarExito, setMostrarExito] = useState(false)
 
-  const [setDatosInvitado] = useState({
+  const [, setDatosInvitado] = useState({
     nombre: '', apellido: '', email: '', telefono: '',
   })
 
@@ -392,6 +392,16 @@ const Reservas = () => {
       return
     }
 
+    //tratamiento elegido sea activo
+    const tratamientoElegido = tratamientos.find((t) => {
+      return String(t.cod_tratamiento) === String(formulario.cod_tratamiento)
+    })
+
+    if (!tratamientoElegido || !tratamientoElegido.activo) {
+      setErrorFormulario("El tratamiento seleccionado no está disponible.")
+      return
+    }
+
     setEnviando(true)
 
     try {
@@ -532,7 +542,13 @@ const Reservas = () => {
               >
                 <option value="">{textoOpcionTratamiento}</option>
                 {tratamientos.map((tratamientoActual) => (
-                  <option key={tratamientoActual.cod_tratamiento} value={tratamientoActual.cod_tratamiento}>{tratamientoActual.descripcion} (${tratamientoActual.costo})</option>
+                  <option
+                    key={tratamientoActual.cod_tratamiento}
+                    value={tratamientoActual.cod_tratamiento}
+                    disabled={!tratamientoActual.activo}
+                  >
+                    {tratamientoActual.descripcion} (${tratamientoActual.costo}){!tratamientoActual.activo ? ' - No disponible' : ''}
+                  </option>
                 ))}
               </select>
             </div>
