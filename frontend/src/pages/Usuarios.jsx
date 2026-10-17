@@ -1,159 +1,230 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import HomeReserva from '../components/HomeReserva.jsx'
-import imagenPortada from '../assets/kinex-center.jpg'
-import imagenQuienesSomos from '../assets/quienes-somos.jpg'
-import imagenPorqueElegirnos from '../assets/porque-elegirnos.jpg'
+import { useEffect, useState } from 'react'
+import { useAuth } from '../hooks/usuarios/useAuth.jsx'
+import { getUsuarios, cambiarRolUsuario } from '../services/usuariosServices.jsx'
 
-const tratamientos = [
-    { name: 'Masoterapia', description: 'Tratamiento terapéutico mediante masajes orientados a aliviar contracturas musculares, reducir el estrés y mejorar la circulación.' },
-    { name: 'Rehabilitación Musculoesquelética', description: 'Evaluación y tratamiento enfocado en recuperar la movilidad y funcionalidad del sistema muscular y esquelético tras lesiones o cirugías.' },
-    { name: 'Estética Facial', description: 'Procedimientos no invasivos diseñados para rejuvenecer, hidratar profundamente y mejorar la elasticidad de la piel del rostro.' },
-    { name: 'Tratamiento Estético Facial', description: 'Terapias avanzadas personalizadas para abordar imperfecciones específicas, líneas de expresión y flacidez mediante tecnología.' },
-    { name: 'Estética Corporal', description: 'Tratamientos moldeadores, reductores y reafirmantes que ayudan a mejorar la silueta y tonificar tejidos corporales.' }
-]
+const ROLES_DISPONIBLES = ['profesional', 'paciente']
 
-const beneficios = [
-    'Atención personalizada', 'Profesionales certificados', 'Tecnología moderna',
-    'Tratamientos efectivos', 'Ambiente cómodo y seguro', 'Enfoque integral en tu bienestar',
-]
+const Usuarios = () => {
+  const { token, rol } = useAuth()
 
-const testimonios = [
-    { text: '“La atención fue excelente y los resultados se notaron rápido. Me sentí en buenas manos desde el primer día.”' },
-    { text: '“El equipo es muy profesional y el ambiente es muy cómodo. Recomiendo sus servicios 100%.”' },
-    { text: '“Viví una experiencia de relajación completa. La reserva fue fácil y el tratamiento muy personalizado.”' },
-]
+  const [listaUsuarios, setListaUsuarios] = useState([])
+  const [estaCargando, setEstaCargando] = useState(true)
+  const [mensajeError, setMensajeError] = useState(null)
+  const [textoBusqueda, setTextoBusqueda] = useState('')
 
-function Home() {
-    // CORREGIDO: antes era "const [ setTratamientoActivo]", que recibía el valor
-    // del estado en vez de la función, y al hacer clic en un tratamiento daba
-    // "setTratamientoActivo is not a function".
-    const [, setTratamientoActivo] = useState(null)
+  const [idUsuarioEnEdicion, setIdUsuarioEnEdicion] = useState(null)
+  const [rolSeleccionado, setRolSeleccionado] = useState('')
+
+  useEffect(() => {
+    const cargarListaUsuarios = async () => {
+      try {
+        const respuesta = await getUsuarios(token)
+        setListaUsuarios(respuesta.data)
+      } catch (errorCapturado) {
+        setMensajeError(errorCapturado.message)
+      } finally {
+        setEstaCargando(false)
+      }
+    }
+    cargarListaUsuarios()
+  }, [token])
+
+  const manejarClickEditar = (usuario) => {
+    setIdUsuarioEnEdicion(usuario.id_usuario)
+    setRolSeleccionado(usuario.rol)
+  }
+
+  const manejarCancelarEdicion = () => {
+    setIdUsuarioEnEdicion(null)
+    setRolSeleccionado('')
+  }
+
+  const manejarClickGuardar = async (usuario) => {
+    if (rolSeleccionado === usuario.rol) {
+      manejarCancelarEdicion()
+      return
+    }
+
+    const usuarioConfirmoElCambio = window.confirm(
+      `Seguro que quieres cambiar el rol de ${usuario.nombre} ${usuario.apellido} a "${rolSeleccionado}".`
+    )
+
+    if (!usuarioConfirmoElCambio) {
+      return
+    }
+
+    try {
+      await cambiarRolUsuario(usuario.id_usuario, rolSeleccionado)
+
+      const listaUsuariosActualizada = listaUsuarios.map((usuarioActual) => {
+        if (usuarioActual.id_usuario === usuario.id_usuario) {
+          return { ...usuarioActual, rol: rolSeleccionado }
+        }
+        return usuarioActual
+      })
+
+      setListaUsuarios(listaUsuariosActualizada)
+      manejarCancelarEdicion()
+    } catch (errorCapturado) {
+      console.error('Error al cambiar el rol:', errorCapturado)
+      alert('No se pudo actualizar el rol. Intenta nuevamente.')
+    }
+  }
+
+  const normalizarTexto = (textoOriginal) => {
+    return textoOriginal
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+  }
+
+  const obtenerClaseDeFila = (indice) => {
+    const claseBase = 'border-t border-gray-100 hover:bg-[#505FB6]/5 transition-colors'
+
+    if (indice % 2 === 1) {
+      return `${claseBase} bg-gray-50/50`
+    }
+
+    return claseBase
+  }
+
+  const renderizarCeldaDeRol = (usuario) => {
+    const estaEditandoEsteUsuario = idUsuarioEnEdicion === usuario.id_usuario
+
+    if (estaEditandoEsteUsuario) {
+      return (
+        <td className="p-3">
+          <select
+            value={rolSeleccionado}
+            onChange={(evento) => setRolSeleccionado(evento.target.value)}
+            className="border border-gray-200 rounded-md text-sm px-2 py-1"
+          >
+            {ROLES_DISPONIBLES.map((rolDisponible) => (
+              <option key={rolDisponible} value={rolDisponible}>
+                {rolDisponible}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => manejarClickGuardar(usuario)}
+            className="ml-2 text-xs bg-[#04B6B6] text-white px-2 py-1 rounded-md"
+          >
+            Guardar
+          </button>
+
+          <button
+            onClick={manejarCancelarEdicion}
+            className="ml-2 text-xs text-gray-600 px-2 py-1"
+          >
+            Cancelar
+          </button>
+        </td>
+      )
+    }
+
+    if (usuario.rol === 'administrador') {
+      return <td className="p-3 text-gray-600">{usuario.rol}</td>
+    }
 
     return (
-        <div>
-            <nav className="flex items-center justify-between px-6 md:px-12 py-4 bg-[#04B6B6] shadow-sm">
-                <span className="text-white font-bold text-xl md:text-2xl">KinexCenter</span>
-                <ul className="flex items-center gap-4 md:gap-8">
-                    <li><a href="#inicio" className="text-sm md:text-base text-white hover:text-white transition-colors">Inicio</a></li>
-                    <li><a href="#tratamientos" className="text-sm md:text-base text-white hover:text-white transition-colors">Tratamientos</a></li>
-                    <li><a href="#contacto" className="text-sm md:text-base text-white hover:text-white transition-colors">Contacto</a></li>
-                    <li><Link to="/login" className="text-sm md:text-base text-white font-medium hover:text-purple-700 transition-colors">Iniciar sesión</Link></li>
-                </ul>
-            </nav>
-
-            <header className="relative bg-cover bg-center" style={{ backgroundImage: `url(${imagenPortada})` }}>
-                <div id="inicio" className="bg-black/45 flex flex-col items-center justify-center text-white px-4 py-20">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-2">KinexCenter</h1>
-                    <p className="text-base md:text-lg mb-6 opacity-90">Kinesiología y Bienestar Integral</p>
-                    <HomeReserva />
-                </div>
-            </header>
-
-            <section className="max-w-6xl mx-auto px-6 md:px-8 py-16">
-                <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-                    <div className="flex-1">
-                        <h2 className="text-3xl font-bold mb-4 text-gray-900">¿Quiénes somos?</h2>
-                        <p className="text-gray-600 leading-relaxed">
-                            Somos un centro de kinesiología y estética enfocado en el bienestar integral de nuestros pacientes.
-                            Ofrecemos tratamientos personalizados, combinando salud, rehabilitación y cuidado estético.
-                        </p>
-                    </div>
-                    <div className="flex-1">
-                        <img src={imagenQuienesSomos} alt="Equipo" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
-                    </div>
-                </div>
-            </section>
-
-            <section className="w-full bg-[#04B6B6] py-16 border-t border-gray-100">
-                <div className="max-w-6xl mx-auto px-6 md:px-8">
-                    <div className="flex flex-col md:flex-row gap-12 items-center">
-                        <div className="flex-1">
-                            <h2 className="text-3xl font-bold mb-6 text-white">¿Por qué elegirnos?</h2>
-                            <ul className="space-y-3">
-                                {beneficios.map((beneficio) => (
-                                    <li key={beneficio} className="flex items-start gap-2 text-white">
-                                        <span className="text-white mt-0.5 shrink-0">✓</span>
-                                        <span>{beneficio}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div className="flex-1">
-                            <img src={imagenPorqueElegirnos} alt="Instalaciones" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="tratamientos" className="bg-gray-50 py-16">
-                <div className="max-w-6xl mx-auto px-6 md:px-8 text-center">
-                    <h2 className="text-3xl font-bold mb-2 text-gray-900">Nuestros Tratamientos</h2>
-                    <p className="text-gray-500 mb-10">Descubre nuestros servicios especializados</p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                        {tratamientos.map((tratamiento) => (
-                            <div
-                                key={tratamiento.name}
-                                onClick={() => {
-                                    setTratamientoActivo(tratamiento)
-                                    window.scrollTo({ top: 0 })
-                                }}
-                                className="bg-white rounded-xl px-4 py-6 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer text-gray-800 font-medium border border-transparent hover:border-gray-200"
-                            >
-                                {tratamiento.name}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            <section className="max-w-6xl mx-auto px-6 md:px-8 py-16">
-                <div className="text-center mb-10">
-                    <span className="text-[#505FB6] font-semibold text-sm uppercase tracking-widest">Nuestros clientes</span>
-                    <h2 className="text-3xl font-bold mt-2 text-gray-900">Experiencias que hablan por nosotros</h2>
-                </div>
-                <div className="flex flex-col md:flex-row gap-6">
-                    {testimonios.map((testimonio) => (
-                        <div key={testimonio.text} className="flex-1 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                            <p className="text-gray-600 leading-relaxed">{testimonio.text}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            <footer id="contacto" className="bg-[#04B6B6] text-black py-12">
-                <div className="max-w-6xl mx-auto px-6 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <div>
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3166.3868763123746!2d-72.36858062447705!3d-37.47519587206239!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x966bdd77ff7f1047%3A0xb29588c093d1cef9!2sKinesiolog%C3%ADa%20y%20Bienestar%20Integral%20-%20KinexCenter!5e0!3m2!1ses-419!2scl!4v1775881042376!5m2!1ses-419!2scl"
-                            width="100%" height="180" allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="rounded-lg"
-                        />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold mb-3">Contacto</h3>
-                        <p className="text-sm mb-1"><strong>Teléfono:</strong> +56 9 1234 5678</p>
-                        <p className="text-sm mb-4"><strong>Correo:</strong> info@kinexcenter.cl</p>
-                        <h3 className="font-semibold mb-3">Nuestros Convenios</h3>
-                        <ul className="text-sm space-y-1"><li>Fonasa</li><li>Isapre</li><li>Particular</li></ul>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold mb-3">Dirección</h3>
-                        <p className="text-sm mb-1">Víctor Domingo Silva 317</p>
-                        <p className="text-sm mb-4">Los Ángeles, Chile</p>
-                        <h3 className="font-semibold mb-3">Medios de pago</h3>
-                        <ul className="text-sm space-y-1"><li>Transbank</li><li>Transferencia</li><li>Efectivo</li></ul>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold mb-3">Horarios de atención</h3>
-                        <p className="text-sm mb-1">Lunes - Viernes: 08:00 - 20:00</p>
-                        <p className="text-sm">Sábado: 08:00 - 18:00</p>
-                        <p className="text-sm">Domingos: 08:00 - 20:00</p>
-                    </div>
-                </div>
-            </footer>
-        </div>
+      <td className="p-3 text-gray-600">
+        {usuario.rol}
+        <button
+          onClick={() => manejarClickEditar(usuario)}
+          className="ml-3 text-xs text-[#505FB6] hover:underline"
+        >
+          Editar
+        </button>
+      </td>
     )
+  }
+
+  if (estaCargando) {
+    return <p>Cargando usuarios...</p>
+  }
+
+  if (mensajeError) {
+    return <p className="text-red-500">{mensajeError}</p>
+  }
+
+  if (rol === 'paciente') {
+    return <p>No tienes permisos para ver esta sección.</p>
+  }
+
+  let usuariosSegunPermiso = listaUsuarios.filter((usuario) => usuario.rol === 'paciente')
+  if (rol === 'administrador') {
+    usuariosSegunPermiso = listaUsuarios
+  }
+
+  const textoBusquedaNormalizado = normalizarTexto(textoBusqueda)
+  const usuariosVisibles = usuariosSegunPermiso.filter((usuario) => {
+    const nombreCompletoNormalizado = normalizarTexto(`${usuario.nombre} ${usuario.apellido}`)
+    return nombreCompletoNormalizado.includes(textoBusquedaNormalizado)
+  })
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Búsqueda de Usuarios</h2>
+
+      <div className="relative mb-6 max-w-sm">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
+          />
+        </svg>
+        <input
+          type="text"
+          value={textoBusqueda}
+          onChange={(evento) => setTextoBusqueda(evento.target.value)}
+          placeholder="Buscar por nombre y apellido"
+          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#505FB6] focus:border-transparent"
+        />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-[#04B6B6] text-left text-black-500 uppercase text-xs tracking-wide">
+              <th className="p-3 font-semibold">RUT</th>
+              <th className="p-3 font-semibold">Nombre</th>
+              <th className="p-3 font-semibold">Apellido</th>
+              <th className="p-3 font-semibold">Teléfono</th>
+              <th className="p-3 font-semibold">Correo</th>
+              <th className="p-3 font-semibold">Roles</th>
+            </tr>
+          </thead>
+          <tbody>
+            {usuariosVisibles.map((usuario, indice) => {
+              return (
+                <tr key={usuario.id_usuario} className={obtenerClaseDeFila(indice)}>
+                  <td className="p-3 text-gray-600">{usuario.rut}</td>
+                  <td className="p-3 text-gray-800">{usuario.nombre}</td>
+                  <td className="p-3 text-gray-800">{usuario.apellido}</td>
+                  <td className="p-3 text-gray-600">{usuario.telefono}</td>
+                  <td className="p-3 text-gray-600">{usuario.correo}</td>
+                  {renderizarCeldaDeRol(usuario)}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        {usuariosVisibles.length === 0 && (
+          <p className="p-6 text-center text-gray-400 text-sm">No se encontraron usuarios.</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
-export default Home
+export default Usuarios
