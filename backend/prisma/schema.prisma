@@ -31,6 +31,7 @@ model Servicio {
   id_servicio   Int           @id @default(autoincrement())
   tipo_servicio String
   descripcion   String
+  activo            Boolean   @default(true)
   tratamientos  Tratamiento[]
 
   @@map("servicios")
@@ -41,6 +42,7 @@ model Tratamiento {
   costo                 Int
   descripcion           String
   id_servicio           Int
+  activo                Boolean               @default(true)
   servicio              Servicio              @relation(fields: [id_servicio], references: [id_servicio])
   tratamientosAsignados TratamientoAsignado[]
 

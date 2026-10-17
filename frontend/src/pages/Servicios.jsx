@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Fragment } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getServicios, crearServicio } from '../services/serviciosServices.jsx'
-import { getTratamientosPorServicio, crearTratamiento } from '../services/tratamientosServices.jsx'
+import { getTratamientosPorServicio, crearTratamiento, cambiarEstadoTratamiento} from '../services/tratamientosServices.jsx'
 
 const TIPOS_SERVICIO = [
   'Rehabilitación musculoesquelética',
@@ -68,26 +68,26 @@ const Servicios = () => {
     }
   }, [])
 
-  useEffect(() => {
+useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarServicios()
-  }, [cargarServicios])
+}, [cargarServicios])
 
-  useEffect(() => {
+useEffect(() => {
     if (mostrarAlerta) {
       const timer = setTimeout(() => setMostrarAlerta(false), 3000)
       return () => clearTimeout(timer)
     }
-  }, [mostrarAlerta])
+}, [mostrarAlerta])
 
-  const cargarTratamientosDeServicio = useCallback(async (idServicio) => {
+const cargarTratamientosDeServicio = useCallback(async (idServicio) => {
     setCargandoTratamientos(true)
     try {
       const respuesta = await getTratamientosPorServicio(idServicio)
 
       let tratamientosNormalizados = respuesta.data
-      if (!Array.isArray(respuesta.data)) {
-        tratamientosNormalizados = [respuesta.data]
+        if (!Array.isArray(respuesta.data)) {
+          tratamientosNormalizados = [respuesta.data]
       }
 
       setTratamientosPorServicio((tratamientosAnteriores) => {
@@ -100,9 +100,9 @@ const Servicios = () => {
     } finally {
       setCargandoTratamientos(false)
     }
-  }, [])
+}, [])
 
-  const alternarExpansionServicio = (idServicio) => {
+const alternarExpansionServicio = (idServicio) => {
     if (servicioExpandido === idServicio) {
       setServicioExpandido(null)
       return
@@ -112,51 +112,51 @@ const Servicios = () => {
     if (!tratamientosPorServicio[idServicio]) {
       cargarTratamientosDeServicio(idServicio)
     }
-  }
+}
 
-  const actualizarCampoServicio = (evento) => {
+const actualizarCampoServicio = (evento) => {
     const nombreCampo = evento.target.name
     const valorCampo = evento.target.value
     setNuevoServicio((servicioAnterior) => {
       return { ...servicioAnterior, [nombreCampo]: valorCampo }
     })
-  }
+}
 
-  const crearNuevoServicio = async (evento) => {
+const crearNuevoServicio = async (evento) => {
     evento.preventDefault()
     setErrorModal('')
     setGuardando(true)
 
     try {
       await crearServicio(nuevoServicio)
-      setMostrarModal(false)
-      setNuevoServicio({ tipo_servicio: '', descripcion: '' })
+        setMostrarModal(false)
+        setNuevoServicio({ tipo_servicio: '', descripcion: '' })
       await cargarServicios()
-      setMensajeAlerta('Servicio creado con éxito')
-      setMostrarAlerta(true)
+        setMensajeAlerta('Servicio creado con éxito')
+        setMostrarAlerta(true)
     } catch (errorCapturado) {
       setErrorModal(errorCapturado.message)
     } finally {
       setGuardando(false)
     }
-  }
+}
 
-  const abrirModalTratamiento = (idServicio) => {
+const abrirModalTratamiento = (idServicio) => {
     setServicioSeleccionado(idServicio)
     setNuevoTratamiento({ descripcion: '', costo: '' })
     setErrorModalTratamiento('')
     setMostrarModalTratamiento(true)
-  }
+}
 
-  const actualizarCampoTratamiento = (evento) => {
+const actualizarCampoTratamiento = (evento) => {
     const nombreCampo = evento.target.name
     const valorCampo = evento.target.value
     setNuevoTratamiento((tratamientoAnterior) => {
       return { ...tratamientoAnterior, [nombreCampo]: valorCampo }
     })
-  }
+}
 
-  const crearNuevoTratamiento = async (evento) => {
+const crearNuevoTratamiento = async (evento) => {
     evento.preventDefault()
     setErrorModalTratamiento('')
 
@@ -174,15 +174,76 @@ const Servicios = () => {
         id_servicio: servicioSeleccionado,
       })
       setMostrarModalTratamiento(false)
-      await cargarTratamientosDeServicio(servicioSeleccionado)
-      setMensajeAlerta('Tratamiento creado con éxito')
-      setMostrarAlerta(true)
+        await cargarTratamientosDeServicio(servicioSeleccionado)
+        setMensajeAlerta('Tratamiento creado con éxito')
+        setMostrarAlerta(true)
     } catch (errorCapturado) {
       setErrorModalTratamiento(errorCapturado.message)
     } finally {
       setGuardandoTratamiento(false)
     }
+}
+//eliminar servicio
+ /* const handleEliminarServicio = async (id_servicio) => {
+  if (!id_servicio) return
+
+  const servicio = servicios.find((servicioActual) => {
+    const idActual = servicioActual.id_servicio ?? servicioActual.id
+    return idActual === id_servicio
+  })
+
+  const nombreServicio = servicio?.tipo_servicio || servicio?.nombre || 'este servicio'
+  const confirmado = window.confirm(`¿Deseas eliminar "${nombreServicio}"?`)
+
+  if (!confirmado) return
+
+  try {
+    await eliminarServicio(id_servicio) 
+    setServicios((serviciosAnteriores) =>
+      serviciosAnteriores.filter((servicioActual) => {
+        const idActual = servicioActual.id_servicio ?? servicioActual.id
+        return idActual !== id_servicio
+      }),
+    )
+    setMensajeAlerta('Servicio eliminado con éxito')
+    setMostrarAlerta(true)
+  } catch (errorCapturado) {
+    setError(errorCapturado.message)
   }
+}
+*/
+
+// activar / desactivar tratamiento
+const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
+  const tratamiento = (tratamientosPorServicio[idServicio] || []).find(
+    (t) => t.cod_tratamiento === codTratamiento,
+  )
+  const accion = tratamiento?.activo ? 'desactivar' : 'activar'
+
+  if (!window.confirm(`¿Deseas ${accion} este tratamiento?`)) return
+
+  try {
+    const respuesta = await cambiarEstadoTratamiento(codTratamiento)
+    const nuevoEstado = respuesta?.data?.activo ?? !tratamiento?.activo
+
+    setTratamientosPorServicio((tratamientosAnteriores) => ({
+      ...tratamientosAnteriores,
+      [idServicio]: (tratamientosAnteriores[idServicio] || []).map(
+        (tratamientoActual) =>
+          tratamientoActual.cod_tratamiento === codTratamiento
+            ? { ...tratamientoActual, activo: nuevoEstado }
+            : tratamientoActual,
+      ),
+    }))
+
+    setMensajeAlerta(
+      nuevoEstado ? 'Tratamiento activado con éxito' : 'Tratamiento desactivado con éxito',
+    )
+    setMostrarAlerta(true)
+  } catch (errorCapturado) {
+    setError(errorCapturado.message)
+  }
+}
 
   if (cargando) {
     return <p>Cargando servicios</p>
@@ -275,6 +336,7 @@ const Servicios = () => {
               <th className="p-3 font-semibold w-8"></th>
               <th className="p-3 font-semibold">Nombre de Servicio</th>
               <th className="p-3 font-semibold">Descripción</th>
+              <th className="p-3 font-semibold w-32 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -293,9 +355,8 @@ const Servicios = () => {
               }
 
               return (
-                <>
+                <Fragment key={servicioActual.id_servicio}>
                   <tr
-                    key={servicioActual.id_servicio}
                     className={filaClase}
                     onClick={() => alternarExpansionServicio(servicioActual.id_servicio)}
                   >
@@ -313,12 +374,23 @@ const Servicios = () => {
                     </td>
                     <td className="p-3 text-gray-600">{servicioActual.tipo_servicio}</td>
                     <td className="p-3 text-gray-600">{servicioActual.descripcion}</td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={(evento) => {
+                          evento.stopPropagation()
+                          handleCambiarEstadoTratamiento(servicioActual.id_servicio)
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
                   </tr>
 
                   {estaExpandido && (
-                    <tr key={`${servicioActual.id_servicio}-detalle`} className="bg-gray-50/70 border-t border-gray-100">
+                    <tr className="bg-gray-50/70 border-t border-gray-100">
                       <td></td>
-                      <td colSpan={2} className="p-4">
+                      <td colSpan={3} className="p-4">
                         <div className="flex items-center justify-end mb-3">
                           <button
                             onClick={(evento) => {
@@ -345,6 +417,7 @@ const Servicios = () => {
                               <tr className="text-left text-gray-500 uppercase tracking-wide bg-gray-100">
                                 <th className="p-2 font-semibold">Descripción</th>
                                 <th className="p-2 font-semibold">Costo</th>
+                                <th className="p-2 font-semibold">Acciones</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -352,6 +425,20 @@ const Servicios = () => {
                                 <tr key={tratamientoActual.cod_tratamiento} className="border-t border-gray-100">
                                   <td className="p-2 text-gray-600">{tratamientoActual.descripcion}</td>
                                   <td className="p-2 text-gray-600">${tratamientoActual.costo}</td>
+                                  <td className="p-2 text-center">
+                                    <button
+                                      onClick={() =>
+                                        handleCambiarEstadoTratamiento(servicioActual.id_servicio, tratamientoActual.cod_tratamiento)
+                                      }
+                                      className={`text-white px-2 py-0.5 rounded text-xs ${
+                                        tratamientoActual.activo
+                                          ? 'bg-orange-500 hover:bg-orange-600'
+                                          : 'bg-green-500 hover:bg-green-600'
+                                      }`}
+                                    >
+                                      {tratamientoActual.activo ? 'Desactivar' : 'Activar'}
+                                    </button>
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -360,7 +447,7 @@ const Servicios = () => {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               )
             })}
           </tbody>

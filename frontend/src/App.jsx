@@ -38,7 +38,7 @@ function App() {
       } />
 
         <Route path="/reservas" element={
-          <ProtectRoutes><Reservas /></ProtectRoutes>
+          <Reservas />
         } />
 
         <Route path="/misHoras" element={

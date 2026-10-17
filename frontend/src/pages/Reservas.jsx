@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
-import { getUsuarios } from '../services/usuariosServices.jsx'
+import { getUsuarios, getProfesionales } from '../services/usuariosServices.jsx'
 import { getServicios } from '../services/serviciosServices.jsx'
 import { getTratamientosPorServicio } from '../services/tratamientosServices.jsx'
 import { asignarTratamiento} from '../services/tratamientosAsigServices.jsx'
-import { crearReserva, getReservasPorProfesional } from '../services/reservasServices.jsx'
+import { crearReserva, getDisponibilidadPorProfesional } from '../services/reservasServices.jsx'
 
 const duracion_bloque_en_min = 60
 
@@ -111,8 +112,6 @@ function horaDeReserva(reserva) {
     return coincidenciaISO[1] + ':' + coincidenciaISO[2]
   }
 
-
-
   const coincidenciaSimple = valorHora.match(/^(\d{2}):(\d{2})/)
   if (coincidenciaSimple) {
     return coincidenciaSimple[1] + ':' + coincidenciaSimple[2]
@@ -128,6 +127,7 @@ function fechaTextoDesdeISO(fechaISO) {
 
 const Reservas = () => {
   const { usuario, rol } = useAuth()
+  const navigate = useNavigate()
 
   let rolActual = ''
   if (rol) {
@@ -166,20 +166,36 @@ const Reservas = () => {
   const [errorFormulario, setErrorFormulario] = useState('')
   const [mostrarExito, setMostrarExito] = useState(false)
 
+  const [, setDatosInvitado] = useState({
+    nombre: '', apellido: '', email: '', telefono: '',
+  })
+
+ /* const actualizarInvitado = (evento) => {
+    const nombreCampo = evento.target.name
+    const valorCampo = evento.target.value
+    setDatosInvitado((d) => ({ ...d, [nombreCampo]: valorCampo }))
+  }
+*/
 
   useEffect(() => {
-    if (!usuario) {
-      return
-    }
-    if (!usuario.id_usuario) {
-      return
-    }
-
     const cargarPacientesYProfesionales = async () => {
-      const respuesta = await getUsuarios()
+      const token = localStorage.getItem('token')
+
+      if (!token) {
+        try {
+          const respuestaProfesionales = await getProfesionales()
+          setProfesionales(respuestaProfesionales.data || [])
+        } catch (err) {
+          console.error('No se pudieron cargar los profesionales', err)
+          setProfesionales([])
+        }
+        return
+      }
+
+      const respuesta = await getUsuarios(token)
       const listaCompletaDeUsuarios = respuesta.data
 
-      if (esPaciente) {
+      if (usuario && esPaciente) {
         setFormulario((formularioAnterior) => {
           return { ...formularioAnterior, id_usuario: usuario.id_usuario }
         })
@@ -190,7 +206,7 @@ const Reservas = () => {
         setPacientes(soloPacientes)
       }
 
-      if (esProfesional) {
+      if (usuario && esProfesional) {
         setFormulario((formularioAnterior) => {
           return { ...formularioAnterior, id_profesional: usuario.id_usuario }
         })
@@ -202,7 +218,7 @@ const Reservas = () => {
       }
     }
 
-     const cargarDatosDeLaPagina = async () => {
+    const cargarDatosDeLaPagina = async () => {
       setCargandoPagina(true)
       try {
         const respuestaServicios = await getServicios()
@@ -239,7 +255,7 @@ const Reservas = () => {
       }
 
       try {
-        const respuesta = await getReservasPorProfesional(formulario.id_profesional)
+        const respuesta = await getDisponibilidadPorProfesional(formulario.id_profesional)
         const todasLasReservas = respuesta.data
 
         const reservasDelDiaSeleccionado = todasLasReservas.filter((reserva) => {
@@ -252,7 +268,7 @@ const Reservas = () => {
 
         setHorasOcupadas(horas)
       } catch (error) {
-        console.error("No se lograron mostrar las horas ocupadas", error)
+        console.error("No se lograron encontrar las horas ocupadas", error)
         setHorasOcupadas([])
       }
     }
@@ -359,8 +375,30 @@ const Reservas = () => {
     evento.preventDefault()
     setErrorFormulario('')
 
+    const token = localStorage.getItem('token')
+
+    if (!token) {
+      navigate('/login')
+      return
+    }
+
     if (!diaSeleccionado || !horaSeleccionadaValida) {
       setErrorFormulario("Selecciona un día y un horario en el calendario.")
+      return
+    }
+
+    if (!esPaciente && !formulario.id_usuario) {
+      setErrorFormulario("Selecciona un paciente.")
+      return
+    }
+
+    //tratamiento elegido sea activo
+    const tratamientoElegido = tratamientos.find((t) => {
+      return String(t.cod_tratamiento) === String(formulario.cod_tratamiento)
+    })
+
+    if (!tratamientoElegido || !tratamientoElegido.activo) {
+      setErrorFormulario("El tratamiento seleccionado no está disponible.")
       return
     }
 
@@ -374,6 +412,7 @@ const Reservas = () => {
 
       const asignacion = await asignarTratamiento({
         id_usuario: Number(formulario.id_usuario),
+        invitado: null,
         id_profesional: Number(formulario.id_profesional),
         cod_tratamiento: Number(formulario.cod_tratamiento),
         observaciones: observacionesParaEnviar,
@@ -396,6 +435,7 @@ const Reservas = () => {
       })
 
       limpiarFormulario()
+      setDatosInvitado({ nombre: '', apellido: '', email: '', telefono: '' })
       setMostrarExito(true)
     } catch (errorCapturado) {
       setErrorFormulario(errorCapturado.message)
@@ -412,24 +452,26 @@ const Reservas = () => {
     return <p className="text-red-500">{error}</p>
   }
 
-
+  const hayToken = !!localStorage.getItem('token')
 
   let claseContenedorSelectorPersonas = 'grid grid-cols-2 gap-4'
-  if (esPaciente || esProfesional) {
+  if (esPaciente || esProfesional || !hayToken) {
     claseContenedorSelectorPersonas = 'grid grid-cols-1 gap-4'
   }
 
   let textoOpcionTratamiento = 'Selecciona un tratamiento'
   if (cargandoTratamientos) {
-    textoOpcionTratamiento = 'Cargando...'
+    textoOpcionTratamiento = 'Cargando'
   }
 
   let textoBotonReservar = 'Reservar'
   if (enviando) {
-    textoBotonReservar = 'Reservando...'
+    textoBotonReservar = 'Reservando'
+  } else if (!hayToken) {
+    textoBotonReservar = 'Inicia Sesión para reservar'
   }
 
-   return (
+  return (
     <div className="max-w-4xl mx-auto">
       {mostrarExito && (
         <div className="fixed bottom-4 right-4 flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 min-w-[300px]">
@@ -447,17 +489,15 @@ const Reservas = () => {
         </div>
       )}
 
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Nueva reserva</h2>
-
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         {errorFormulario && <p className="text-red-600 text-sm mb-4">{errorFormulario}</p>}
 
         <form onSubmit={reservar} className="flex flex-col gap-5">
           <div className={claseContenedorSelectorPersonas}>
-            {!esPaciente && (
+            {!esPaciente && hayToken && (
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Paciente</label>
-                <select name="id_usuario" value={formulario.id_usuario} onChange={actualizarCampo} required className="w-full border rounded-lg p-2 text-sm">
+                <select name="id_usuario" value={formulario.id_usuario} onChange={actualizarCampo} required={hayToken} className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white">
                   <option value="">Selecciona un paciente</option>
                   {pacientes.map((paciente) => (
                     <option key={paciente.id_usuario} value={paciente.id_usuario}>{paciente.nombre} {paciente.apellido}</option>
@@ -469,7 +509,7 @@ const Reservas = () => {
             {!esProfesional && (
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Profesional</label>
-                <select name="id_profesional" value={formulario.id_profesional} onChange={actualizarCampo} required className="w-full border rounded-lg p-2 text-sm">
+                <select name="id_profesional" value={formulario.id_profesional} onChange={actualizarCampo} required className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white">
                   <option value="">Selecciona un profesional</option>
                   {profesionales.map((profesionalActual) => (
                     <option key={profesionalActual.id_usuario} value={profesionalActual.id_usuario}>{profesionalActual.nombre} {profesionalActual.apellido}</option>
@@ -482,7 +522,7 @@ const Reservas = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Servicio</label>
-              <select name="id_servicio" value={formulario.id_servicio} onChange={cambiarServicio} required className="w-full border rounded-lg p-2 text-sm">
+              <select name="id_servicio" value={formulario.id_servicio} onChange={cambiarServicio} required className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white">
                 <option value="">Selecciona un servicio</option>
                 {servicios.map((servicioActual) => (
                   <option key={servicioActual.id_servicio} value={servicioActual.id_servicio}>{servicioActual.tipo_servicio}</option>
@@ -498,20 +538,26 @@ const Reservas = () => {
                 onChange={actualizarCampo}
                 required
                 disabled={!formulario.id_servicio || cargandoTratamientos}
-                className="w-full border rounded-lg p-2 text-sm disabled:bg-gray-100"
+                className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white disabled:bg-gray-100"
               >
                 <option value="">{textoOpcionTratamiento}</option>
                 {tratamientos.map((tratamientoActual) => (
-                  <option key={tratamientoActual.cod_tratamiento} value={tratamientoActual.cod_tratamiento}>{tratamientoActual.descripcion} (${tratamientoActual.costo})</option>
+                  <option
+                    key={tratamientoActual.cod_tratamiento}
+                    value={tratamientoActual.cod_tratamiento}
+                    disabled={!tratamientoActual.activo}
+                  >
+                    {tratamientoActual.descripcion} (${tratamientoActual.costo}){!tratamientoActual.activo ? ' - No disponible' : ''}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {!esPaciente && (
+          {!esPaciente && hayToken && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Observaciones</label>
-              <textarea name="observaciones" value={formulario.observaciones} onChange={actualizarCampo} placeholder="Opcional" className="w-full border rounded-lg p-2 text-sm" />
+              <textarea name="observaciones" value={formulario.observaciones} onChange={actualizarCampo} placeholder="Opcional" className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white" />
             </div>
           )}
 
@@ -557,7 +603,6 @@ const Reservas = () => {
               </div>
             </div>
 
-
             {diaSeleccionado && (
               <div className="mt-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
@@ -591,6 +636,20 @@ const Reservas = () => {
               </div>
             )}
           </div>
+
+          {!hayToken && diaSeleccionado && horaSeleccionadaValida && (
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Por favor, leer</p>
+              <div className="grid grid-cols-2 gap-3">
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Te enviaremos la confirmación al correo y WhatsApp. ¿Ya tienes cuenta?{' '}
+                <button type="button" onClick={() => navigate('/login')} className="text-[#505FB6] underline">
+                  Inicia sesión
+                </button> para autocompletar tus datos.
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end mt-2">
             <button type="submit" disabled={enviando} className="px-4 py-2 rounded-lg bg-[#505FB6] text-white text-sm font-medium hover:bg-[#3f4d9e] disabled:opacity-50">

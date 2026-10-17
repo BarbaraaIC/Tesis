@@ -129,25 +129,36 @@ export const obtenerServicios = async (req, res) => {
     }
 }
 
-export const eliminarServicio = async (req, res) => {
+export const desactivarServicio = async (req, res) => {
     try {
-        const { tipo_servicio} = req.params;
+        const id_servicio = parseInt(req.params.id_servicio, 10);
+
+        if (isNaN(id_servicio)) {
+            return handleErrorClient(res, 400, "ID de servicio inválido.");
+        }
 
         const servicioExistente = await prisma.servicio.findFirst({
-            where: { tipo_servicio: tipo_servicio }
+            where: { id_servicio, activo: true }
         });
 
         if (!servicioExistente) {
             return handleErrorClient(res, 404, "Servicio no encontrado.");
         }
 
-        await prisma.servicio.delete({
-            where: { id_servicio: servicioExistente.id_servicio}
-        });
+        await prisma.$transaction([
+            prisma.tratamiento.updateMany({
+                where: { id_servicio, activo: true },
+                data: { activo: false}
+            }),
+            prisma.servicio.update({
+                where: { id_servicio },
+                data: { activo: false}
+            })
+        ]);
 
-        return handleSuccess(res, 200, "Servicio eliminado correctamente.");
+        return handleSuccess(res, 200, "Servicio desactivado correctamente.");
 
     } catch (error) {
-        return handleErrorServer(res, 500, "Error al eliminar el servicio.", error.message);
+        return handleErrorServer(res, 500, "Error al desactivar el servicio.", error.message);
     }
-}
+};

@@ -15,6 +15,16 @@ export async function getUsuarios(token) {
     }
 }
 
+export async function getProfesionales() {
+    try {
+        const response = await axios.get('usuarios/profesionales');
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener profesionales:", error);
+        throw error;
+    }
+}
+
 export async function actualizarUsuario(id, datos) {
     try {
         const response = await axios.patch(`/usuarios/actualizarDatos/${id}`, datos)

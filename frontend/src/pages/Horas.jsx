@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
-import { getReservasPorUsuario } from '../services/reservasServices.jsx'
+import { getReservasPorUsuario, getReservasPorProfesional } from '../services/reservasServices.jsx'
 
 const nombre_meses = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -49,6 +49,25 @@ function obtenerNombreProfesional(reserva) {
   return '—'
 }
 
+function obtenerNombrePaciente(reserva) {
+  if (reserva.asignacion && reserva.asignacion.usuario) {
+    const paciente = reserva.asignacion.usuario
+    return `${paciente.nombre} ${paciente.apellido}`
+  }
+  if (reserva.asignacion && reserva.asignacion.paciente) {
+    const paciente = reserva.asignacion.paciente
+    return `${paciente.nombre} ${paciente.apellido}`
+  }
+  if (reserva.paciente) {
+    return `${reserva.paciente.nombre} ${reserva.paciente.apellido}`
+  }
+  if (reserva.asignacion && reserva.asignacion.invitado) {
+    const invitado = reserva.asignacion.invitado
+    return `${invitado.nombre} ${invitado.apellido || ''}`.trim()
+  }
+  return '—'
+}
+
 function obtenerDescripcionTratamiento(reserva) {
   if (reserva.asignacion && reserva.asignacion.tratamiento) {
     return reserva.asignacion.tratamiento.descripcion
@@ -76,11 +95,17 @@ function ordenarPorFechaYHora(reservas) {
 }
 
 const MisReservas = () => {
-  const { usuario } = useAuth()
+  const { usuario, rol } = useAuth()
 
   const [reservas, setReservas] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
+
+  let rolActual = ''
+  if (rol) {
+    rolActual = rol.toLowerCase().trim()
+  }
+  const esProfesional = rolActual === 'profesional'
 
   useEffect(() => {
     if (!usuario) {
@@ -89,10 +114,14 @@ const MisReservas = () => {
     if (!usuario.id_usuario) {
       return
     }
+
     const cargarReservas = async () => {
       setCargando(true)
       try {
-       const respuesta = await getReservasPorUsuario(usuario.id_usuario)
+        const respuesta = esProfesional
+          ? await getReservasPorProfesional(usuario.id_usuario)
+          : await getReservasPorUsuario(usuario.id_usuario)
+
         setReservas(respuesta.data)
       } catch (errorCapturado) {
         setError(errorCapturado.message)
@@ -102,7 +131,7 @@ const MisReservas = () => {
     }
 
     cargarReservas()
-  }, [usuario])
+  }, [usuario, esProfesional])
 
   if (cargando) {
     return <p>Cargando tus horas reservadas...</p>
@@ -114,6 +143,8 @@ const MisReservas = () => {
 
   const reservasOrdenadas = ordenarPorFechaYHora(reservas)
 
+  const tituloColumnaPersona = esProfesional ? 'Paciente' : 'Profesional'
+
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Mis horas reservadas</h2>
@@ -124,7 +155,7 @@ const MisReservas = () => {
             <tr className="bg-[#04B6B6] text-left text-black-500 uppercase text-xs tracking-wide">
               <th className="p-3 font-semibold">Fecha</th>
               <th className="p-3 font-semibold">Hora</th>
-              <th className="p-3 font-semibold">Profesional</th>
+              <th className="p-3 font-semibold">{tituloColumnaPersona}</th>
               <th className="p-3 font-semibold">Tratamiento</th>
             </tr>
           </thead>
@@ -135,11 +166,20 @@ const MisReservas = () => {
                 filaClase = 'border-t border-gray-100 bg-gray-50/50'
               }
 
+              let nombrePersona;
+
+                if (esProfesional) {
+                    nombrePersona = obtenerNombrePaciente(reserva);
+                } else {
+                    nombrePersona = obtenerNombreProfesional(reserva);
+                }
+
+
               return (
                 <tr key={reserva.id_reserva} className={filaClase}>
                   <td className="p-3 text-gray-800">{formatearFechaLegible(reserva.dia)}</td>
                   <td className="p-3 text-gray-600">{formatearHora(reserva.hora)}</td>
-                  <td className="p-3 text-gray-600">{obtenerNombreProfesional(reserva)}</td>
+                  <td className="p-3 text-gray-600">{nombrePersona}</td>
                   <td className="p-3 text-gray-600">{obtenerDescripcionTratamiento(reserva)}</td>
                 </tr>
               )

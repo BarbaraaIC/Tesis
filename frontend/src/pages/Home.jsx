@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import DetalleTratamiento from './DetalleTratamiento.jsx' 
-import kinexCenterImg from '../assets/kinex-center.jpg'
-import quienesSomosImg from '../assets/quienes-somos.jpg'
-import porqueElegirnosImg from '../assets/porque-elegirnos.jpg'
+import { Link } from 'react-router-dom'
+import HomeReserva from '../components/HomeReserva.jsx'
+import imagenPortada from '../assets/kinex-center.jpg'
+import imagenQuienesSomos from '../assets/quienes-somos.jpg'
+import imagenPorqueElegirnos from '../assets/porque-elegirnos.jpg'
 
 const tratamientos = [
     { name: 'Masoterapia', description: 'Tratamiento terapéutico mediante masajes orientados a aliviar contracturas musculares, reducir el estrés y mejorar la circulación.' },
@@ -25,18 +25,10 @@ const testimonios = [
 ]
 
 function Home() {
-    const navegar = useNavigate()
-    
-    const [tratamientoActivo, setTratamientoActivo] = useState(null)
+    const [tarjetasVolteadas, setTarjetasVolteadas] = useState({})
 
-    if (tratamientoActivo) {
-        return (
-            <DetalleTratamiento 
-                info={tratamientoActivo} 
-                alCerrar={() => setTratamientoActivo(null)} 
-                alReservar={() => navegar('/login')}
-            />
-        )
+    const alternarTarjeta = (nombre) => {
+        setTarjetasVolteadas((anterior) => ({ ...anterior, [nombre]: !anterior[nombre] }))
     }
 
     return (
@@ -51,13 +43,11 @@ function Home() {
                 </ul>
             </nav>
 
-            <header className="relative bg-cover bg-center" style={{ backgroundImage: `url(${kinexCenterImg})` }}>
+            <header className="relative bg-cover bg-center" style={{ backgroundImage: `url(${imagenPortada})` }}>
                 <div id="inicio" className="bg-black/45 flex flex-col items-center justify-center text-white px-4 py-20">
                     <h1 className="text-4xl md:text-6xl font-bold mb-2">KinexCenter</h1>
                     <p className="text-base md:text-lg mb-6 opacity-90">Kinesiología y Bienestar Integral</p>
-                    <button onClick={() => navegar('/login')} className="bg-[#505FB6] text-white px-8 py-3 rounded-lg font-medium transition-colors cursor-pointer">
-                        Reservar hora
-                    </button>
+                    <HomeReserva />
                 </div>
             </header>
 
@@ -67,54 +57,87 @@ function Home() {
                         <h2 className="text-3xl font-bold mb-4 text-gray-900">¿Quiénes somos?</h2>
                         <p className="text-gray-600 leading-relaxed">
                             Somos un centro de kinesiología y estética enfocado en el bienestar integral de nuestros pacientes.
-                            Ofrecemos treatments personalizados, combinando salud, rehabilitación y cuidado estético.
+                            Ofrecemos tratamientos personalizados, combinando salud, rehabilitación y cuidado estético.
                         </p>
                     </div>
                     <div className="flex-1">
-                        <img src={quienesSomosImg} alt="Equipo" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
+                        <img src={imagenQuienesSomos} alt="Equipo" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
                     </div>
                 </div>
             </section>
 
-<section className="w-full bg-[#04B6B6] py-16 border-t border-gray-100">
-    <div className="max-w-6xl mx-auto px-6 md:px-8">
-        <div className="flex flex-col md:flex-row gap-12 items-center">
-            <div className="flex-1">
-                <h2 className="text-3xl font-bold mb-6 text-white">¿Por qué elegirnos?</h2>
-                <ul className="space-y-3">
-                    {beneficios.map((beneficio) => (
-                        <li key={beneficio} className="flex items-start gap-2 text-white">
-                            <span className="text-white mt-0.5 shrink-0">✓</span>
-                            <span>{beneficio}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-            <div className="flex-1">
-                <img src="/src/assets/porque-elegirnos.jpg" alt="Instalaciones" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
-            </div>
-        </div>
-    </div>
-</section>
+            <section className="w-full bg-[#04B6B6] py-16 border-t border-gray-100">
+                <div className="max-w-6xl mx-auto px-6 md:px-8">
+                    <div className="flex flex-col md:flex-row gap-12 items-center">
+                        <div className="flex-1">
+                            <h2 className="text-3xl font-bold mb-6 text-white">¿Por qué elegirnos?</h2>
+                            <ul className="space-y-3">
+                                {beneficios.map((beneficio) => (
+                                    <li key={beneficio} className="flex items-start gap-2 text-white">
+                                        <span className="text-white mt-0.5 shrink-0">✓</span>
+                                        <span>{beneficio}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="flex-1">
+                            <img src={imagenPorqueElegirnos} alt="Instalaciones" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <section id="tratamientos" className="bg-gray-50 py-16">
                 <div className="max-w-6xl mx-auto px-6 md:px-8 text-center">
                     <h2 className="text-3xl font-bold mb-2 text-gray-900">Nuestros Tratamientos</h2>
                     <p className="text-gray-500 mb-10">Descubre nuestros servicios especializados</p>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                        {tratamientos.map((tratamiento) => (
-                            <div
-                                key={tratamiento.name}
-                                onClick={() => {
-                                    setTratamientoActivo(tratamiento);
-                                    window.scrollTo({ top: 0 }); 
-                                }}
-                                className="bg-white rounded-xl px-4 py-6 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer text-gray-800 font-medium border border-transparent hover:border-gray-200"
-                            >
-                                {tratamiento.name}
-                            </div>
-                        ))}
+                        {tratamientos.map((tratamiento) => {
+                            const volteada = !!tarjetasVolteadas[tratamiento.name]
+
+                            return (
+                                <button
+                                    type="button"
+                                    key={tratamiento.name}
+                                    onClick={() => alternarTarjeta(tratamiento.name)}
+                                    aria-pressed={volteada}
+                                    aria-label={tratamiento.name + ': ' + (volteada ? 'ocultar descripción' : 'ver descripción')}
+                                    className="h-52 w-full text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#505FB6] rounded-xl"
+                                    style={{ perspective: '1000px' }}
+                                >
+                                    <div
+                                        className="relative h-full w-full transition-transform duration-500"
+                                        style={{
+                                            transformStyle: 'preserve-3d',
+                                            transform: volteada ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                                        }}
+                                    >
+                                        {/* Frente: título */}
+                                        <div
+                                            className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white rounded-xl px-4 py-6 shadow-sm hover:shadow-md border border-gray-100 text-gray-800 font-semibold text-lg text-center"
+                                            style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                                        >
+                                            <span>{tratamiento.name}</span>
+                                            <span className="text-xs font-normal text-gray-400">Toca para saber  más</span>
+                                        </div>
+
+                                        {/* Reverso: título + descripción */}
+                                        <div
+                                            className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#04B6B6] text-white rounded-xl px-5 py-6 shadow-md text-center"
+                                            style={{
+                                                backfaceVisibility: 'hidden',
+                                                WebkitBackfaceVisibility: 'hidden',
+                                                transform: 'rotateY(180deg)',
+                                            }}
+                                        >
+                                            <span className="font-semibold text-base">{tratamiento.name}</span>
+                                            <p className="text-sm leading-relaxed opacity-95">{tratamiento.description}</p>
+                                        </div>
+                                    </div>
+                                </button>
+                            )
+                        })}
                     </div>
                 </div>
             </section>
