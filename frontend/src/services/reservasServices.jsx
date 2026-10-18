@@ -50,13 +50,23 @@ export const getDisponibilidadPorProfesional = async (id_profesional) => {
   }
 };
 
-export const cancelarReserva = async (id_reserva) => {
+export const cancelarReserva = async (cod_reserva) => {
     try {
-        const response = await axios.delete(`/reservas/cancelar/${id_reserva}`);
+        const response = await axios.delete(`/reservas/eliminarReserva/${cod_reserva}`);
         return response.data;
     }
     catch (error) {
         const backendMessage = error.response?.data?.message || 'Error al cancelar la reserva';
+        throw new Error(backendMessage, { cause: error });
+    }
+}
+
+export const marcarAsistencia = async (cod_reserva, asistencia) => {
+    try {
+        const response = await axios.patch(`/reservas/marcarAsistencia/${cod_reserva}`, { asistencia });
+        return response.data;
+    }   catch (error) {
+        const backendMessage = error.response?.data?.message || 'Error al marcar la asistencia';
         throw new Error(backendMessage, { cause: error });
     }
 }

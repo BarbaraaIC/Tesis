@@ -1,6 +1,7 @@
 "use strict";
 import { prisma } from "../config/configDb.js";
 import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
+import { isAdminOrProfesional } from "../middleware/authorization.middleware.js";
 
 export const crearReserva = async (req, res) => {
     try {
@@ -192,5 +193,53 @@ export const cancelarReserva = async (req, res) => {
         return handleSuccess(res, 200, "Reserva cancelada con éxito.", reserva);
     } catch (error) {
         return handleErrorServer(res, 500, "Error al cancelar la reserva.", error.message);
+    }
+};
+
+const estados_asistencia = ["pendiente", "asistio", "no_asistio"];
+
+export const marcarAsistencia = async (req, res) => {
+    try {
+        const cod_reserva = parseInt(req.params.cod_reserva);
+        const { asistencia } = req.body;
+
+        if (!cod_reserva) {
+            return handleErrorClient(res, 400, "El código de la reserva no es válido.");
+        }
+
+        if (!estados_asistencia.includes(asistencia)) {
+            return handleErrorClient(res, 400, "El estado de asistencia no es válido.");
+        }
+
+        const reserva = await prisma.reserva.findUnique({
+            where: { cod_reserva: cod_reserva },
+            include: { asignacion: true },
+        });
+
+        if (!reserva) {
+            return handleErrorClient(res, 404, "La reserva no fue encontrada.");
+        }
+
+        if (!isAdminOrProfesional) {
+            return handleErrorClient(res, 403, "No tienes permiso para marcar la asistencia de esta reserva.");
+        }
+        const hoy = new Date();
+        const hoyTexto =
+            hoy.getFullYear() + "-" +
+            String(hoy.getMonth() + 1).padStart(2, "0") + "-" +
+            String(hoy.getDate()).padStart(2, "0");
+        const diaReserva = reserva.dia.toISOString().slice(0, 10);
+
+        if (diaReserva > hoyTexto) {
+            return handleErrorClient(res, 400, "No puedes marcar la asistencia de una hora futura.");
+        }
+
+        const reservaActualizada = await prisma.reserva.update({
+            where: { cod_reserva: cod_reserva },
+            data: { asistencia: asistencia },
+        });
+        return handleSuccess(res, 200, "Asistencia actualizada con éxito.", reservaActualizada);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al actualizar la asistencia.", error.message);
     }
 };

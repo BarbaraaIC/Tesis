@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
-import { getReservas, getReservasPorUsuario, getReservasPorProfesional } from '../services/reservasServices.jsx'
+import { getReservas, getReservasPorUsuario, getReservasPorProfesional, cancelarReserva, marcarAsistencia } from '../services/reservasServices.jsx'
 
 const nombre_meses_cortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
 const nombre_dias_cortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
@@ -12,6 +12,7 @@ const filtros = [
   { clave: 'todas', texto: 'Todas' },
   { clave: 'proximas', texto: 'Próximas' },
   { clave: 'pasadas', texto: 'Pasadas' },
+  { clave: 'sinmarcar', texto: 'Sin marcar' }, // solo para profesional y administrador
 ]
 
 function pad(numero) {
@@ -169,6 +170,9 @@ const MisReservas = () => {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [filtro, setFiltro] = useState('todas')
+  const [cancelandoId, setCancelandoId] = useState(null)
+  const [marcandoId, setMarcandoId] = useState(null)
+  const [alerta, setAlerta] = useState(null) // { texto, tipo: 'exito' | 'error' }
 
   let rolActual = ''
   if (rol) {
@@ -176,6 +180,7 @@ const MisReservas = () => {
   }
   const esProfesional = rolActual === 'profesional'
   const esAdministrador = rolActual === 'administrador'
+  const puedeMarcar = esProfesional || esAdministrador
 
   useEffect(() => {
     if (!usuario) {
@@ -208,6 +213,15 @@ const MisReservas = () => {
     cargarReservas()
   }, [usuario, esProfesional, esAdministrador])
 
+  useEffect(() => {
+    if (!alerta) {
+      return
+    }
+
+    const timer = setTimeout(() => setAlerta(null), 3000)
+    return () => clearTimeout(timer)
+  }, [alerta])
+
   if (cargando) {
     return <p>Cargando tus horas reservadas...</p>
   }
@@ -227,6 +241,10 @@ const MisReservas = () => {
     if (filtro === 'pasadas') {
       return fecha < hoy
     }
+    if (filtro === 'sinmarcar') {
+      const estado = reserva.asistencia || 'pendiente'
+      return fecha <= hoy && estado === 'pendiente'
+    }
     return true
   })
 
@@ -244,6 +262,66 @@ const MisReservas = () => {
       elemento.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }
+
+  const cancelarHora = async (reserva) => {
+    const descripcion = obtenerDescripcionTratamiento(reserva)
+    const fecha = partesDeFecha(soloFecha(reserva.dia))
+    const hora = extraerHora(reserva.hora)
+
+    const confirmado = window.confirm(
+      `¿Deseas cancelar la hora de ${descripcion} del ${fecha.dia} de ${fecha.mes} a las ${hora}?`,
+    )
+    if (!confirmado) {
+      return
+    }
+
+    setCancelandoId(reserva.cod_reserva)
+    try {
+      await cancelarReserva(reserva.cod_reserva)
+      setReservas((reservasAnteriores) => {
+        return reservasAnteriores.filter((reservaActual) => {
+          return reservaActual.cod_reserva !== reserva.cod_reserva
+        })
+      })
+      setAlerta({ texto: 'Reserva cancelada con éxito', tipo: 'exito' })
+    } catch (errorCapturado) {
+      setAlerta({ texto: errorCapturado.message, tipo: 'error' })
+    } finally {
+      setCancelandoId(null)
+    }
+  }
+
+  const cambiarAsistencia = async (reserva, estadoNuevo) => {
+    const estadoActual = reserva.asistencia || 'pendiente'
+
+    // Pulsar de nuevo el botón ya activo lo deja otra vez sin marcar
+    let estadoFinal = estadoNuevo
+    if (estadoActual === estadoNuevo) {
+      estadoFinal = 'pendiente'
+    }
+
+    setMarcandoId(reserva.cod_reserva)
+    try {
+      await marcarAsistencia(reserva.cod_reserva, estadoFinal)
+      setReservas((reservasAnteriores) => {
+        return reservasAnteriores.map((reservaActual) => {
+          if (reservaActual.cod_reserva === reserva.cod_reserva) {
+            return { ...reservaActual, asistencia: estadoFinal }
+          }
+          return reservaActual
+        })
+      })
+    } catch (errorCapturado) {
+      setAlerta({ texto: errorCapturado.message, tipo: 'error' })
+    } finally {
+      setMarcandoId(null)
+    }
+  }
+
+  const reservasYaOcurridas = reservasOrdenadas.filter((reserva) => soloFecha(reserva.dia) <= hoy)
+  const cuentaAsistio = reservasYaOcurridas.filter((reserva) => reserva.asistencia === 'asistio').length
+  const cuentaNoAsistio = reservasYaOcurridas.filter((reserva) => reserva.asistencia === 'no_asistio').length
+  const cuentaSinMarcar = reservasYaOcurridas.length - cuentaAsistio - cuentaNoAsistio
 
   const claseBotonBase = 'px-4 py-2 rounded-lg border text-sm font-medium transition-colors min-h-[44px]'
   const claseBotonInactivo = 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -263,9 +341,29 @@ const MisReservas = () => {
   if (reservas.length > 0 && filtro === 'pasadas') {
     mensajeVacio = 'No tienes horas pasadas.'
   }
+  if (reservas.length > 0 && filtro === 'sinmarcar') {
+    mensajeVacio = 'No tienes horas pendientes de marcar.'
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
+      {alerta && (
+        <div
+          role="status"
+          className={
+            'fixed bottom-4 right-4 flex items-center gap-3 px-4 py-3 rounded-lg shadow-md border min-w-[300px] ' +
+            (alerta.tipo === 'exito'
+              ? 'bg-green-50 text-green-800 border-green-100'
+              : 'bg-red-50 text-red-800 border-red-100')
+          }
+        >
+          <span className="flex-1 text-sm font-medium">{alerta.texto}</span>
+          <button type="button" onClick={() => setAlerta(null)} aria-label="Cerrar aviso" className="text-lg leading-none">
+            ×
+          </button>
+        </div>
+      )}
+
       <h2 className="text-2xl font-bold text-gray-800 mb-6">{tituloPagina}</h2>
 
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -278,7 +376,7 @@ const MisReservas = () => {
           Hoy
         </button>
 
-        {filtros.map((filtroActual) => {
+        {filtros.filter((filtroActual) => filtroActual.clave !== 'sinmarcar' || puedeMarcar).map((filtroActual) => {
           let clase = claseBotonBase + ' ' + claseBotonInactivo
           if (filtro === filtroActual.clave) {
             clase = claseBotonBase + ' ' + claseBotonActivo
@@ -297,6 +395,16 @@ const MisReservas = () => {
           )
         })}
       </div>
+
+      {puedeMarcar && reservasYaOcurridas.length > 0 && (
+        <p className="mb-4 text-sm text-gray-700">
+          <span className="font-semibold text-green-700">{cuentaAsistio} asistieron</span>
+          {' · '}
+          <span className="font-semibold text-red-600">{cuentaNoAsistio} no asistieron</span>
+          {' · '}
+          <span className="font-semibold text-gray-600">{cuentaSinMarcar} sin marcar</span>
+        </p>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {grupos.map((grupo, indice) => {
@@ -336,6 +444,16 @@ const MisReservas = () => {
               <div className="flex flex-col gap-1">
                 {grupo.reservas.map((reserva) => {
                   const descripcion = obtenerDescripcionTratamiento(reserva)
+                  const estadoAsistencia = reserva.asistencia || 'PENDIENTE'
+                  const esFutura = grupo.fecha > hoy
+                  const claseAsistio =
+                    estadoAsistencia === 'asistio'
+                      ? 'border-green-700 bg-green-700 text-white'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  const claseNoAsistio =
+                    estadoAsistencia === 'no_asistio'
+                      ? 'border-red-600 bg-red-600 text-white'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
 
                   let nombrePersona
                   if (esAdministrador || esProfesional) {
@@ -365,6 +483,44 @@ const MisReservas = () => {
                           </span>
                         )}
                       </span>
+                      {puedeMarcar && !esFutura && (
+                        <span className="flex gap-1 self-start sm:self-auto" role="group" aria-label="Asistencia">
+                          <button
+                            type="button"
+                            onClick={() => cambiarAsistencia(reserva, 'asistio')}
+                            disabled={marcandoId === reserva.cod_reserva}
+                            aria-pressed={estadoAsistencia === 'ASISTIO'}
+                            className={'px-3 py-1 rounded border text-xs font-medium disabled:opacity-50 ' + claseAsistio}
+                          >
+                            Asistió
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cambiarAsistencia(reserva, 'no_asistio')}
+                            disabled={marcandoId === reserva.cod_reserva}
+                            aria-pressed={estadoAsistencia === 'NO_ASISTIO'}
+                            className={'px-3 py-1 rounded border text-xs font-medium disabled:opacity-50 ' + claseNoAsistio}
+                          >
+                            No asistió
+                          </button>
+                        </span>
+                      )}
+                      {!puedeMarcar && estadoAsistencia === 'asistio' && (
+                        <span className="text-xs font-semibold text-green-700">Asististe</span>
+                      )}
+                      {!puedeMarcar && estadoAsistencia === 'no_asistio' && (
+                        <span className="text-xs font-semibold text-red-600">No asististe</span>
+                      )}
+                      {!esPasado && (
+                        <button
+                          type="button"
+                          onClick={() => cancelarHora(reserva)}
+                          disabled={cancelandoId === reserva.cod_reserva}
+                          className="self-start sm:self-auto px-3 py-1 rounded text-xs font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {cancelandoId === reserva.cod_reserva ? 'Cancelando...' : 'Cancelar'}
+                        </button>
+                      )}
                     </div>
                   )
                 })}
