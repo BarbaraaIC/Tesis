@@ -56,8 +56,6 @@ export const crearReserva = async (req, res) => {
             },
         });
 
-        // NUEVO: correo de confirmación. No se espera (sin await) para no demorar
-        // la respuesta, y si falla solo queda registrado en los logs.
         prisma.reserva
             .findUnique({
                 where: { cod_reserva: nuevaReserva.cod_reserva },
@@ -81,15 +79,14 @@ export const crearReserva = async (req, res) => {
     }
 }
 
-// NUEVO: todas las reservas de todos los roles (solo administrador).
-// Protege la ruta con tu middleware de rol administrador.
+
 export const getReservas = async (req, res) => {
     try {
         const reservas = await prisma.reserva.findMany({
             include: {
                 asignacion: {
                     include: {
-                        // select evita enviar al frontend campos sensibles del usuario
+
                         usuario: {
                             select: { id_usuario: true, nombre: true, apellido: true },
                         },
@@ -214,7 +211,7 @@ export const cancelarReserva = async (req, res) => {
             return handleErrorClient(res, 404, "La reserva no fue encontrada.");
         }
 
-        // NUEVO: solo el administrador, el paciente o el profesional de esa reserva pueden cancelarla
+
         const esAdmin = req.usuario?.rol === "administrador";
         if (!esAdmin) {
             const usuarioActual = await obtenerUsuarioActual(req);
@@ -230,8 +227,6 @@ export const cancelarReserva = async (req, res) => {
 
         await prisma.reserva.delete({
             where: {
-                // CORREGIDO: antes decía "cod_reserva: cod_reserva,e" y la "e" suelta
-                // lanzaba un ReferenceError, por lo que cancelar siempre devolvía 500.
                 cod_reserva: cod_reserva,
             },
         });
@@ -244,8 +239,6 @@ export const cancelarReserva = async (req, res) => {
 
 const ESTADOS_ASISTENCIA = ["PENDIENTE", "ASISTIO", "NO_ASISTIO"];
 
-// NUEVO: marcar si el paciente asistió o no a su hora.
-// Solo el profesional de esa reserva o un administrador pueden hacerlo.
 export const marcarAsistencia = async (req, res) => {
     try {
         const cod_reserva = parseInt(req.params.cod_reserva);
