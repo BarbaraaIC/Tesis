@@ -12,7 +12,7 @@ model Usuario {
   rut                      String                @unique
   nombre                   String
   apellido                 String
-  edad                     Int
+  fecha_nacimiento         DateTime
   direccion                String
   telefono                 String
   correo                   String                @unique
@@ -21,6 +21,7 @@ model Usuario {
   enfermedades             String?
   medicamentos             String?
   ocupacion                String
+  autoriza_datos_salud     Boolean               @default(false)
   tratamientosAsignados    TratamientoAsignado[] @relation("PacienteTratamientos")
   tratamientosAsignadosPor TratamientoAsignado[] @relation("ProfesionalTratamientos")
 
