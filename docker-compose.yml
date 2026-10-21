@@ -32,30 +32,18 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@gmail.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       DATABASE_URL: ${DATABASE_URL:-postgresql://usuario_tesis:clave_tesis_123@db:5432/mydb_tesis?schema=public}
+      # Correo (nodemailer). El usuario y la clave NO llevan valor por defecto:
+      # se leen del archivo .env que está junto a este docker-compose.yml
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      MAIL_FROM: ${MAIL_FROM}
     depends_on:
       db:
         condition: service_healthy
     networks:
       - project_tesis
-
-  # frontend:
-  #   # build: ./frontend
-  #   build:
-  #     context: ./frontend
-  #     args:
-  #       VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
-  #   container_name: frontend_app
-  #   ports:
-  #     - '8080:3000'
-  #   environment:
-  #     VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
-  #   depends_on:
-  #     - backend
-  #   networks:
-  #     - project_tesis
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
 
   frontend:
     build: ./frontend
