@@ -1,0 +1,9 @@
+SMTP_HOST=smtp.gmail.com /*servidor de envio correo*/
+SMTP_PORT=465
+SMTP_USER="correo profesional" /*correo profesional que se usará para enviar los correos. 
+                      Debe ser un correo real, de preferencia Gmail, y debe tener habilitado el acceso a apps 
+                      menos seguras (https://myaccount.google.com/lesssecureapps)*/
+SMTP_PASS="clave de 16 caracteres" /*clave de 16 caracteres que se obtiene en la configuración de seguridad del correo profesional. 
+                      No es la clave normal del correo, sino una clave especial para apps menos seguras. 
+                      Se obtiene en https://myaccount.google.com/apppasswords */
+MAIL_FROM="KinexCenter <KinexCenter@gmail.com>" /*correo que se mostrará como remitente en los correos enviados*/
