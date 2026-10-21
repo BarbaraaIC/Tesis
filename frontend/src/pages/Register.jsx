@@ -22,6 +22,28 @@ const direccion_val = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9.,#-]+(?:\s[a-zA-Záé
 const nombre_val = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]+)*$/
 const apellido_val = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]+(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]+)*$/
 
+const formatoFecha = (fecha) => {
+    const y = fecha.getFullYear()
+    const m = String(fecha.getMonth() + 1).padStart(2, '0')
+    const d = String(fecha.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+}
+
+const calcularEdad = (fechaNac) => {
+    if (!fechaNac) return 0
+    const hoy = new Date()
+    const nac = new Date(`${fechaNac}T00:00:00`)
+    let edad = hoy.getFullYear() - nac.getFullYear()
+    const mes = hoy.getMonth() - nac.getMonth()
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) {
+        edad--
+    }
+    return edad
+}
+
+const hoyStr = formatoFecha(new Date())
+const minStr = formatoFecha(new Date(new Date().getFullYear() - 99, 0, 1))
+
 function Register (){
     const navigate = useNavigate()
     const [step, setStep] = useState(1)
@@ -33,7 +55,7 @@ function Register (){
     const [correo, setCorreo] = useState('')
     const [telefono, setTelefono] = useState('')
     const [password, setPassword] = useState('')
-    const [edad, setEdad] = useState('')
+    const [fecha_nacimiento, setFecha_nacimiento] = useState('')
     const [direccion, setDireccion] = useState('')
     const [tieneEnfermedades, setTieneEnfermedades] = useState('no')
     const [enfermedades, setEnfermedades] = useState('')
@@ -53,9 +75,9 @@ function Register (){
         if (!rut_val.test(rut.trim())) {
             return 'El RUT debe tener el formato xx.xxx.xxx-x (ej: 12.345.678-9).'
         }
-        const edadNumero = Number(edad)
-        if (!edad || edadNumero < 1 || edadNumero > 99) {
-            return 'Ingresa una edad válida (entre 1 y 99).'
+        const edadCalculada = calcularEdad(fecha_nacimiento)
+        if (!fecha_nacimiento || edadCalculada < 1 || edadCalculada > 99) {
+            return 'Ingresa una fecha de nacimiento válida (edad entre 1 y 99 años).'
         }
         return ''
     }
@@ -115,42 +137,44 @@ function Register (){
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-            setError('');
+        setError('');
 
-	const mensajeErrorPaso3 = validarPaso3()
-	if(mensajeErrorPaso3){
-		setError(mensajeErrorPaso3)
-		return
-	}
+        const mensajeErrorPaso3 = validarPaso3()
+        if (mensajeErrorPaso3) {
+            setError(mensajeErrorPaso3)
+            return
+        }
 
-	const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
+        const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
 
-	setEnviando(true)
+        setEnviando(true)
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
+            //const res = await fetch('http://localhost:3000/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nombre, apellido, rut, correo, telefono, password,
+                fecha_nacimiento: fecha_nacimiento,
+                ocupacion: ocupacionFinal, direccion,
+                enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
+                medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
+            }),
+            })
 
-try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            nombre, apellido, rut, correo, telefono, password, edad, ocupacion: ocupacionFinal, direccion,
-            enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
-            medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
-        }),
-        })
+            const data = await res.json()
+                if (!res.ok) {
+                    setError(data.message || 'Error al registrar.')
+                        return
+                }
+                navigate('/login')
+        } catch {
+            setError('Error de conexión con el servidor')
+        } finally {
+            setEnviando(false)
+        }
+    }
 
-        const data = await res.json()
-            if (!res.ok) {
-                setError(data.message || 'Error al registrar.')
-                    return
-            }
-            navigate('/login')
-    } catch {
-        setError('Error de conexión con el servidor')
-	}finally {
-		setEnviando(false)
-	}
-     }
- 
 return (
     <div className="min-h-screen flex items-center justify-center bg-[#04B6B6] px-4">
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
@@ -199,12 +223,13 @@ return (
                         />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de nacimiento</label>
                         <input
-                            type="number"
-                            min="1" max="99"
-                            value={edad}
-                            onChange={(e) => setEdad(e.target.value)}
+                            type="date"
+                            value={fecha_nacimiento}
+                            min={minStr}
+                            max={hoyStr}
+                            onChange={(e) => setFecha_nacimiento(e.target.value)}
                             required
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
                         />

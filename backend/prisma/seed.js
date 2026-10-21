@@ -15,13 +15,13 @@ async function main() {
       rut: '12.345.678-9',
       nombre: 'Administrador',
       apellido: 'Sistema',
-      edad: 30,
       direccion: 'Dirección por defecto',
       telefono: '+56912345678',
       correo: adminEmail,
       password: passwordHash,
       rol: 'administrador',
       ocupacion: 'Administrador',
+      fecha_nacimiento: new Date('2000-01-01'),
     },
   });
 

@@ -90,17 +90,11 @@ export const registroValidation = Joi.object({
         "any.required": "La contraseña es un campo requerido."
     }),
 
-    edad: Joi.number()
-    .integer()
-    .min(1)
-    .max(99)
+    fecha_nacimiento: Joi.date()
     .required()
     .messages({
-        "number.base": "La edad debe ser un número",
-        "number.integer": "La edad no puede tener decimales",
-        "any.required": "La edad es obligatoria",
-        "number.min": "La edad debe mínima debe ser 1",
-        "number.max": "La edad no puede superar los 110",
+        "date.base": "La fecha de nacimiento es obligatoria",
+        "any.required": "La fecha de nacimiento es obligatoria",
     }),
     ocupacion: Joi.string()
     .trim()                     

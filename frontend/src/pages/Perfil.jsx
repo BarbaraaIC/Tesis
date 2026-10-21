@@ -9,11 +9,17 @@ const campos = [
     { name: 'correo', label: 'Correo', tipo: 'email' },
     { name: 'telefono', label: 'Teléfono', tipo: 'text' },
     { name: 'direccion', label: 'Dirección', tipo: 'text' },
-    { name: 'edad', label: 'Edad', tipo: 'number' },
+    { name: 'fecha_nacimiento', label: 'Fecha de nacimiento', tipo: 'text' },
     { name: 'ocupacion', label: 'Ocupación', tipo: 'text' },
     { name: 'enfermedades', label: 'Enfermedades', tipo: 'textarea' },
     { name: 'medicamentos', label: 'Medicamentos', tipo: 'text'},
     ]
+
+// Campos que solo se pueden visualizar
+const camposBloqueados = ['nombre', 'apellido', 'rut', 'fecha_nacimiento']
+
+const TEXTO_AUTORIZACION =
+    'Autorizo que mis datos de salud, como enfermedades y medicamentos, sean utilizados con fines médicos.'
 
 function obtenerValorOTextoVacio(valor) {
     if (valor) {
@@ -22,7 +28,18 @@ function obtenerValorOTextoVacio(valor) {
     return ''
 }
 
-
+function formatearFecha(valor) {
+    if (!valor) {
+        return ''
+    }
+    const soloFecha = String(valor).slice(0, 10)
+    const partes = soloFecha.split('-')
+    if (partes.length !== 3) {
+        return String(valor)
+    }
+    const [anio, mes, dia] = partes
+    return `${dia}/${mes}/${anio}`
+}
 
 function armarFormDesdeUsuario(usuario) {
     return {
@@ -32,10 +49,11 @@ function armarFormDesdeUsuario(usuario) {
         correo: obtenerValorOTextoVacio(usuario.correo),
         telefono: obtenerValorOTextoVacio(usuario.telefono),
         direccion: obtenerValorOTextoVacio(usuario.direccion),
-        edad: obtenerValorOTextoVacio(usuario.edad),
+        fecha_nacimiento: formatearFecha(usuario.fecha_nacimiento),
         ocupacion: obtenerValorOTextoVacio(usuario.ocupacion),
         enfermedades: obtenerValorOTextoVacio(usuario.enfermedades),
         medicamentos: obtenerValorOTextoVacio(usuario.medicamentos),
+        autoriza_datos_salud: Boolean(usuario.autoriza_datos_salud),
     }
 }
 
@@ -76,17 +94,24 @@ const Perfil = () => {
 
     const actualizarCampo = (evento) => {
         const nombreCampo = evento.target.name
-        let valor = evento.target.value
-
-        if (nombreCampo === 'edad') {
-            valor = valor.replace(/[^0-9]/g, '')
-            if (valor !== '' && Number(valor) > 99) {
-                valor = '99'
-            }
-        }
+        const valor = evento.target.value
 
         setForm((formularioAnterior) => {
             return { ...formularioAnterior, [nombreCampo]: valor }
+        })
+    }
+
+    const yaAutorizo = Boolean(usuario.autoriza_datos_salud)
+
+    const actualizarAutorizacion = (evento) => {
+        if (yaAutorizo) {
+            return
+        }
+
+        const marcado = evento.target.checked
+
+        setForm((formularioAnterior) => {
+            return { ...formularioAnterior, autoriza_datos_salud: marcado }
         })
     }
 
@@ -101,26 +126,19 @@ const Perfil = () => {
         evento.preventDefault()
         setError('')
 
-        if (form.edad !== '') {
-            const edadNumero = Number(form.edad)
-            if (edadNumero < 1 || edadNumero > 99) {
-                setError('La edad debe ser un número entre 1 y 99.')
-                return
-            }
+        const tieneDatosDeSalud =
+            form.enfermedades.trim() !== '' || form.medicamentos.trim() !== ''
+
+        if (tieneDatosDeSalud && !form.autoriza_datos_salud) {
+            setError('Para guardar tus datos de salud debes marcar la casilla de autorización.')
+            return
         }
 
         setGuardando(true)
 
         try {
-            let edadParaEnviar = null
-            if (form.edad !== '') {
-                edadParaEnviar = Number(form.edad)
-            }
-
-            const datosAEnviar = {
-                ...form,
-                edad: edadParaEnviar,
-            }
+            // eslint-disable-next-line no-unused-vars
+            const { fecha_nacimiento, ...datosAEnviar } = form
 
             if (nuevaPassword.trim() !== '') {
                 datosAEnviar.password = nuevaPassword
@@ -156,7 +174,10 @@ const Perfil = () => {
         return (
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 {campos.map((campo) => {
-                    const valor = usuario[campo.name]
+                    let valor = usuario[campo.name]
+                    if (campo.name === 'fecha_nacimiento') {
+                        valor = formatearFecha(valor)
+                    }
 
                     let textoAMostrar = '—'
                     if (valor) {
@@ -175,12 +196,17 @@ const Perfil = () => {
     }
 
     const renderizarCampoDeEdicion = (campo) => {
-        if (campo.name === 'rut') {
+        if (camposBloqueados.includes(campo.name)) {
+            let valorMostrado = form[campo.name]
+            if (campo.name === 'fecha_nacimiento') {
+                valorMostrado = formatearFecha(valorMostrado)
+            }
+
             return (
                 <input
                     type="text"
                     name={campo.name}
-                    value={form[campo.name]}
+                    value={valorMostrado}
                     disabled
                     className="w-full border rounded-lg p-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
@@ -198,76 +224,22 @@ const Perfil = () => {
                     rows={3}
                 />
             )
-        }
-
-                if (campo.name === 'nombre') {
-            return (
-                <input
-                    type="text"
-                    name={campo.name}
-                    value={form[campo.name]}
-                    disabled
-                    className="w-full border rounded-lg p-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
-                />
-            )
-        }
-
-        if (campo.tipo === 'textarea') {
-            return (
-                <textarea
-                    name={campo.name}
-                    value={form[campo.name]}
-                    onChange={actualizarCampo}
-                    placeholder="Sin enfermedades registradas"
-                    className="w-full border rounded-lg p-2 text-sm"
-                    rows={3}
-                />
-            )
-        }
-
-        
-                if (campo.name === 'apellido') {
-            return (
-                <input
-                    type="text"
-                    name={campo.name}
-                    value={form[campo.name]}
-                    disabled
-                    className="w-full border rounded-lg p-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
-                />
-            )
-        }
-
-        if (campo.tipo === 'textarea') {
-            return (
-                <textarea
-                    name={campo.name}
-                    value={form[campo.name]}
-                    onChange={actualizarCampo}
-                    placeholder="Sin enfermedades registradas"
-                    className="w-full border rounded-lg p-2 text-sm"
-                    rows={3}
-                />
-            )
-        }
-
-        let tipoDeInput = campo.tipo
-        let modoDeEntrada = undefined
-        if (campo.name === 'edad') {
-            tipoDeInput = 'text'
-            modoDeEntrada = 'numeric'
         }
 
         return (
             <input
-                type={tipoDeInput}
-                inputMode={modoDeEntrada}
+                type={campo.tipo}
                 name={campo.name}
                 value={form[campo.name]}
                 onChange={actualizarCampo}
                 className="w-full border rounded-lg p-2 text-sm"
             />
         )
+    }
+
+    let textoBotonGuardar = 'Guardar cambios'
+    if (guardando) {
+        textoBotonGuardar = 'Guardando...'
     }
 
     const renderizarFormularioEdicion = () => {
@@ -297,6 +269,32 @@ const Perfil = () => {
                     </div>
                 </div>
 
+                <label
+                    className={
+                        'flex items-start gap-3 text-sm ' +
+                        (yaAutorizo ? 'text-gray-600 cursor-not-allowed' : 'text-gray-700 cursor-pointer')
+                    }
+                >
+                    <input
+                        type="checkbox"
+                        checked={form.autoriza_datos_salud}
+                        onChange={actualizarAutorizacion}
+                        disabled={yaAutorizo}
+                        className={
+                            'mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 accent-[#505FB6] ' +
+                            (yaAutorizo ? 'cursor-not-allowed' : 'cursor-pointer')
+                        }
+                    />
+                    <span>
+                        {TEXTO_AUTORIZACION}
+                        {yaAutorizo && (
+                            <span className="block text-xs text-gray-500 mt-1">
+                                Ya aceptaste esta autorización.
+                            </span>
+                        )}
+                    </span>
+                </label>
+
                 <div className="flex justify-end gap-3 mt-2">
                     <button
                         type="button"
@@ -316,11 +314,6 @@ const Perfil = () => {
                 </div>
             </form>
         )
-    }
-
-    let textoBotonGuardar = 'Guardar cambios'
-    if (guardando) {
-        textoBotonGuardar = 'Guardando...'
     }
 
     let contenidoPrincipal = renderizarVistaPerfil()
@@ -364,6 +357,22 @@ const Perfil = () => {
                     {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
                     {contenidoPrincipal}
                 </div>
+
+                {!modoEdicion && (
+                    <p className="mt-4 flex items-start gap-2 text-xs text-gray-600">
+                        {usuario.autoriza_datos_salud ? (
+                            <>
+                                <span aria-hidden="true" className="font-bold text-green-700">✓</span>
+                                <span>Autorizaste que tus datos de salud, como enfermedades y medicamentos, sean utilizados con fines médicos.</span>
+                            </>
+                        ) : (
+                            <>
+                                <span aria-hidden="true">○</span>
+                                <span>Aún no has autorizado el uso de tus datos de salud con fines médicos. Puedes hacerlo en "Editar perfil".</span>
+                            </>
+                        )}
+                    </p>
+                )}
             </div>
         </div>
     )

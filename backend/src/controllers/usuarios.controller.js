@@ -4,6 +4,14 @@ import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers
 import { registroValidation } from "../validations/usuario.validation.js";
 import { prisma } from "../config/configDb.js";
 
+// NUEVO: quita el hash de la contraseña antes de enviar un usuario al frontend
+function sinPassword(usuario) {
+    if (!usuario) return usuario;
+    // eslint-disable-next-line no-unused-vars
+    const { password, ...resto } = usuario;
+    return resto;
+}
+
 export const crearUsuario = async (req, res) => {
 
     const { error, value} = registroValidation.validate(req.body); 
@@ -12,7 +20,7 @@ export const crearUsuario = async (req, res) => {
     }
 
     const {
-        nombre,apellido,rut,correo,telefono,password,edad,
+        nombre,apellido,rut,correo,telefono,password,fecha_nacimiento,
         ocupacion,
         direccion,
         enfermedades,
@@ -42,7 +50,7 @@ export const crearUsuario = async (req, res) => {
                     correo,
                     telefono,
                     password: hashedPassword,
-                    edad: value.edad,
+                    fecha_nacimiento,
                     ocupacion,
                     direccion,
                     enfermedades: enfermedades || null,
@@ -111,7 +119,8 @@ export const obtenerUsuarios = async (req, res) => {
                     });
                 }
 
-        return handleSuccess(res, 200, "Usuarios obtenidos correctamente.", usuarios);
+        // CAMBIO: antes se enviaba el usuario completo, incluido el hash de la contraseña
+        return handleSuccess(res, 200, "Usuarios obtenidos correctamente.", usuarios.map(sinPassword));
     } catch (error) {
         return handleErrorServer(res, 500, "Error al obtener usuarios.", error.message);
     }
@@ -179,8 +188,9 @@ export const actualizarUsuario = async (req, res) => {
         }
 
         const {
-            nombre, apellido, rut, correo, telefono, password, edad,
+            nombre, apellido, rut, correo, telefono, password, fecha_nacimiento,
             ocupacion, direccion, enfermedades, medicamentos,
+            autoriza_datos_salud,
         } = req.body;
 
         if (rut || correo || telefono) {
@@ -205,6 +215,27 @@ export const actualizarUsuario = async (req, res) => {
             }
         }
 
+        // NUEVO: una vez aceptada, la autorización no se puede quitar
+        if (
+            usuarioExistente.autoriza_datos_salud &&
+            autoriza_datos_salud !== undefined &&
+            autoriza_datos_salud !== true
+        ) {
+            return handleErrorClient(res, 400, "La autorización de datos de salud ya fue aceptada y no se puede modificar.");
+        }
+
+        // NUEVO: si se envían datos de salud, la autorización debe estar marcada
+        // (la que viene en la petición o, si no viene, la que ya estaba guardada)
+        let autorizaFinal = usuarioExistente.autoriza_datos_salud;
+        if (autoriza_datos_salud !== undefined) {
+            autorizaFinal = Boolean(autoriza_datos_salud);
+        }
+
+        const enviaDatosDeSalud = Boolean(enfermedades) || Boolean(medicamentos);
+        if (enviaDatosDeSalud && !autorizaFinal) {
+            return handleErrorClient(res, 400, "Para guardar datos de salud debes aceptar la autorización de uso.");
+        }
+
         const datosActualizados = {};
 
         if (nombre) datosActualizados.nombre = nombre;
@@ -212,11 +243,12 @@ export const actualizarUsuario = async (req, res) => {
         if (rut) datosActualizados.rut = rut;
         if (correo) datosActualizados.correo = correo;
         if (telefono) datosActualizados.telefono = telefono;
-        if (edad) datosActualizados.edad = edad;
+        if (fecha_nacimiento) datosActualizados.fecha_nacimiento = fecha_nacimiento;
         if (ocupacion) datosActualizados.ocupacion = ocupacion;
         if (direccion) datosActualizados.direccion = direccion;
         if (enfermedades !== undefined) datosActualizados.enfermedades = enfermedades || null;
         if (medicamentos !== undefined) datosActualizados.medicamentos = medicamentos || null;
+        if (autoriza_datos_salud !== undefined) datosActualizados.autoriza_datos_salud = autorizaFinal;
 
         if (password) {
             datosActualizados.password = await encryptPassword(password);
@@ -227,7 +259,9 @@ export const actualizarUsuario = async (req, res) => {
             data: datosActualizados
         });
 
-        return handleSuccess(res, 200, "Datos de usuario actualizado correctamente.", usuarioActualizado);
+        // CAMBIO: antes se devolvía el usuario completo, con el hash de la contraseña,
+        // y el frontend lo guarda en su estado
+        return handleSuccess(res, 200, "Datos de usuario actualizado correctamente.", sinPassword(usuarioActualizado));
     } catch (error) {
         return handleErrorServer(res, 500, "Hubo un problema en el servidor al datos del usuario.", error.message);
     }
