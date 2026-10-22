@@ -5,7 +5,9 @@ import { getReservas, getReservasPorUsuario, getReservasPorProfesional, cancelar
 const nombre_meses_cortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
 const nombre_dias_cortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
 
-// Colores con buen contraste con texto blanco; se asignan por tratamiento
+
+const horas_minimas_para_cancelar = 2
+
 const colores_tratamiento = ['#0E7C7C', '#505FB6', '#B45309', '#9D174D', '#4D7C0F']
 
 const filtros = [
@@ -24,7 +26,6 @@ function fechaDeHoyTexto() {
   return hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate())
 }
 
-// "2026-10-16T00:00:00.000Z" -> "2026-10-16"
 function soloFecha(textoFecha) {
   if (!textoFecha) {
     return ''
@@ -32,7 +33,6 @@ function soloFecha(textoFecha) {
   return textoFecha.slice(0, 10)
 }
 
-// Acepta "16:00", "16:00:00" o "1970-01-01T16:00:00.000Z" -> "16:00"
 function extraerHora(textoHora) {
   if (!textoHora) {
     return ''
@@ -44,7 +44,41 @@ function extraerHora(textoHora) {
   return coincidencia[1] + ':' + coincidencia[2]
 }
 
-// "16:00 – 17:00". Usa tiempo_estimado si viene; si no, 1 hora.
+function fechaHoraDeReserva(reserva) {
+  const fecha = soloFecha(reserva.dia)
+  const hora = extraerHora(reserva.hora)
+
+  if (!fecha || !hora) {
+    return null
+  }
+
+  const partesFecha = fecha.split('-')
+  const partesHora = hora.split(':')
+
+  return new Date(
+    Number(partesFecha[0]),
+    Number(partesFecha[1]) - 1,
+    Number(partesFecha[2]),
+    Number(partesHora[0]),
+    Number(partesHora[1]),
+  )
+}
+
+// Se puede cancelar en cualquier momento, excepto cuando faltan "horas_minimas_para_cancelar"
+
+function puedeCancelarReserva(reserva) {
+  const inicio = fechaHoraDeReserva(reserva)
+  if (!inicio) {
+    return false
+  }
+
+  const bloqueoEnMilisegundos = horas_minimas_para_cancelar * 60 * 60 * 1000
+  const milisegundosRestantes = inicio.getTime() - new Date().getTime()
+
+  return milisegundosRestantes > bloqueoEnMilisegundos
+}
+
+
 function calcularRangoHora(reserva) {
   const inicio = extraerHora(reserva.hora)
   if (!inicio) {
@@ -74,7 +108,6 @@ function partesDeFecha(textoFecha) {
   const año = Number(partes[0])
   const mes = Number(partes[1])
   const dia = Number(partes[2])
-  // Se crea con año/mes/día locales para evitar desfases por zona horaria
   const fecha = new Date(año, mes - 1, dia)
   return {
     dia: dia,
@@ -174,6 +207,9 @@ const MisReservas = () => {
   const [marcandoId, setMarcandoId] = useState(null)
   const [alerta, setAlerta] = useState(null) // { texto, tipo: 'exito' | 'error' }
 
+  // Fuerza un re-render cada 30 segundos para que el botón Cancelar se bloquee en tiempo real
+  const [, setTick] = useState(0)
+
   let rolActual = ''
   if (rol) {
     rolActual = rol.toLowerCase().trim()
@@ -222,6 +258,11 @@ const MisReservas = () => {
     return () => clearTimeout(timer)
   }, [alerta])
 
+  useEffect(() => {
+    const intervalo = setInterval(() => setTick((t) => t + 1), 30000)
+    return () => clearInterval(intervalo)
+  }, [])
+
   if (cargando) {
     return <p>Cargando tus horas reservadas...</p>
   }
@@ -264,6 +305,15 @@ const MisReservas = () => {
   }
 
   const cancelarHora = async (reserva) => {
+    // Se vuelve a validar al momento de hacer clic, por si el plazo venció con la página abierta
+    if (!puedeCancelarReserva(reserva)) {
+      setAlerta({
+        texto: `No se puede cancelar una hora con menos de ${horas_minimas_para_cancelar} horas de anticipación`,
+        tipo: 'error',
+      })
+      return
+    }
+
     const descripcion = obtenerDescripcionTratamiento(reserva)
     const fecha = partesDeFecha(soloFecha(reserva.dia))
     const hora = extraerHora(reserva.hora)
@@ -294,7 +344,6 @@ const MisReservas = () => {
   const cambiarAsistencia = async (reserva, estadoNuevo) => {
     const estadoActual = reserva.asistencia || 'pendiente'
 
-    // Pulsar de nuevo el botón ya activo lo deja otra vez sin marcar
     let estadoFinal = estadoNuevo
     if (estadoActual === estadoNuevo) {
       estadoFinal = 'pendiente'
@@ -444,8 +493,9 @@ const MisReservas = () => {
               <div className="flex flex-col gap-1">
                 {grupo.reservas.map((reserva) => {
                   const descripcion = obtenerDescripcionTratamiento(reserva)
-                  const estadoAsistencia = reserva.asistencia || 'PENDIENTE'
+                  const estadoAsistencia = reserva.asistencia || 'pendiente'
                   const esFutura = grupo.fecha > hoy
+                  const cancelable = puedeCancelarReserva(reserva)
                   const claseAsistio =
                     estadoAsistencia === 'asistio'
                       ? 'border-green-700 bg-green-700 text-white'
@@ -511,7 +561,7 @@ const MisReservas = () => {
                       {!puedeMarcar && estadoAsistencia === 'no_asistio' && (
                         <span className="text-xs font-semibold text-red-600">No asististe</span>
                       )}
-                      {!esPasado && (
+                      {!esPasado && cancelable && (
                         <button
                           type="button"
                           onClick={() => cancelarHora(reserva)}
@@ -519,6 +569,16 @@ const MisReservas = () => {
                           className="self-start sm:self-auto px-3 py-1 rounded text-xs font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
                         >
                           {cancelandoId === reserva.cod_reserva ? 'Cancelando...' : 'Cancelar'}
+                        </button>
+                      )}
+                      {!esPasado && !cancelable && (
+                        <button
+                          type="button"
+                          disabled
+                          title={`No se puede cancelar una hora con menos de ${horas_minimas_para_cancelar} horas de anticipación`}
+                          className="self-start sm:self-auto px-3 py-1 rounded text-xs font-medium bg-gray-200 text-gray-500 cursor-not-allowed"
+                        >
+                          Cancelar
                         </button>
                       )}
                     </div>

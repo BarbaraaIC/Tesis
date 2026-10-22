@@ -76,6 +76,22 @@ function yaPaso(fecha) {
   return fecha < hoy
 }
 
+// Indica si un horario del día seleccionado ya pasó (solo aplica si el día es hoy)
+function horaYaPaso(fecha, hora) {
+  if (!fecha) {
+    return false
+  }
+
+  const ahora = new Date()
+
+  if (fechaAtexto(fecha) !== fechaAtexto(ahora)) {
+    return false
+  }
+
+  const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes()
+  return horaAMinutos(hora) <= minutosActuales
+}
+
 function generarDiasDelMes(fecha) {
   const primerDiaDelMes = new Date(fecha.getFullYear(), fecha.getMonth(), 1)
   const ultimoDiaDelMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0)
@@ -166,16 +182,13 @@ const Reservas = () => {
   const [errorFormulario, setErrorFormulario] = useState('')
   const [mostrarExito, setMostrarExito] = useState(false)
 
+  // Fuerza un re-render 
+  const [, setTick] = useState(0)
+
   const [, setDatosInvitado] = useState({
     nombre: '', apellido: '', email: '', telefono: '',
   })
 
- /* const actualizarInvitado = (evento) => {
-    const nombreCampo = evento.target.name
-    const valorCampo = evento.target.value
-    setDatosInvitado((d) => ({ ...d, [nombreCampo]: valorCampo }))
-  }
-*/
 
   useEffect(() => {
     const cargarPacientesYProfesionales = async () => {
@@ -248,6 +261,11 @@ const Reservas = () => {
   }, [mostrarExito])
 
   useEffect(() => {
+    const intervalo = setInterval(() => setTick((t) => t + 1), 30000)
+    return () => clearInterval(intervalo)
+  }, [])
+
+  useEffect(() => {
     const cargarHorasOcupadas = async () => {
       if (!diaSeleccionado || !formulario.id_profesional) {
         setHorasOcupadas([])
@@ -277,7 +295,11 @@ const Reservas = () => {
   }, [diaSeleccionado, formulario.id_profesional])
 
   let horaSeleccionadaValida = null
-  if (horaSeleccionada && !horasOcupadas.includes(horaSeleccionada)) {
+  if (
+    horaSeleccionada &&
+    !horasOcupadas.includes(horaSeleccionada) &&
+    !(diaSeleccionado && horaYaPaso(diaSeleccionado, horaSeleccionada))
+  ) {
     horaSeleccionadaValida = horaSeleccionada
   }
 
@@ -611,11 +633,15 @@ const Reservas = () => {
                 <div className="flex flex-wrap gap-2">
                   {horariosDisponibles.map((hora) => {
                     const ocupada = horasOcupadas.includes(hora)
+                    const pasada = horaYaPaso(diaSeleccionado, hora)
+                    const bloqueada = ocupada || pasada
                     const seleccionada = horaSeleccionadaValida === hora
 
                     let clase = 'text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:border-[#505FB6]'
                     if (ocupada) {
                       clase = 'text-xs px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-red-300 line-through cursor-not-allowed'
+                    } else if (pasada) {
+                      clase = 'text-xs px-3 py-2 rounded-lg border border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
                     } else if (seleccionada) {
                       clase = 'text-xs px-3 py-2 rounded-lg border border-[#505FB6] bg-[#505FB6] text-white'
                     }
@@ -625,7 +651,7 @@ const Reservas = () => {
                         type="button"
                         key={hora}
                         onClick={() => setHoraSeleccionada(hora)}
-                        disabled={ocupada}
+                        disabled={bloqueada}
                         className={clase}
                       >
                         {hora}
