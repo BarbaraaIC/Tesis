@@ -395,7 +395,7 @@ const MisReservas = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       {alerta && (
         <div
           role="status"

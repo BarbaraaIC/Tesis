@@ -156,3 +156,33 @@ export async function enviarRecordatorioReserva(reserva) {
         ]),
     });
 }
+
+export async function enviarCancelacionReserva(reserva) {
+    const d = armarDatos(reserva);
+    const nombrePaciente = `${d.paciente.nombre} ${d.paciente.apellido}`;
+    const nombreProfesional = `${d.profesional.nombre} ${d.profesional.apellido}`;
+ 
+    const alPaciente = enviarCorreo({
+        to: d.paciente.correo,
+        subject: "Tu hora fue cancelada",
+        text: `Hola ${d.paciente.nombre}, tu hora de ${d.tratamiento} con ${nombreProfesional} del ${d.fecha} a las ${d.hora} fue cancelada.`,
+        html: plantillaHtml("Tu hora fue cancelada", [
+            `Hola ${escaparHtml(d.paciente.nombre)},`,
+            `Tu hora de <strong>${escaparHtml(d.tratamiento)}</strong> con ${escaparHtml(nombreProfesional)} fue cancelada.`,
+            `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
+            "Si lo necesitas, puedes reservar una nueva hora desde la plataforma.",
+        ]),
+    });
+ 
+    const alProfesional = enviarCorreo({
+        to: d.profesional.correo,
+        subject: "Hora cancelada",
+        text: `La hora de ${d.tratamiento} con ${nombrePaciente} del ${d.fecha} a las ${d.hora} fue cancelada.`,
+        html: plantillaHtml("Hora cancelada", [
+            `La hora de <strong>${escaparHtml(d.tratamiento)}</strong> con ${escaparHtml(nombrePaciente)} fue cancelada.`,
+            `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
+        ]),
+    });
+ 
+    await Promise.all([alPaciente, alProfesional]);
+}

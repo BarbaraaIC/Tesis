@@ -1,11 +1,9 @@
 "use strict";
 import { prisma } from "../config/configDb.js";
 import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
-import { enviarConfirmacionReserva } from "../services/email.service.js";
+import { enviarConfirmacionReserva, enviarCancelacionReserva,  } from "../services/email.service.js";
 import { isAdminOrProfesional } from "../middleware/authorization.middleware.js";
 
-// El middleware deja la sesión en req.usuario = { rol, sub }, donde sub es el RUT.
-// Este helper busca el id_usuario correspondiente.
 async function obtenerUsuarioActual(req) {
     return prisma.usuario.findUnique({
         where: { rut: req.usuario?.sub },
@@ -202,8 +200,15 @@ export const cancelarReserva = async (req, res) => {
         }
 
         const reserva = await prisma.reserva.findUnique({
-            where: {
-                cod_reserva: cod_reserva,
+            where: { cod_reserva: cod_reserva },
+            include: {
+                asignacion: {
+                    include: {
+                        usuario: { select: { nombre: true, apellido: true, correo: true } },
+                        profesional: { select: { nombre: true, apellido: true, correo: true } },
+                        tratamiento: true,
+                    },
+                },
             },
         });
 
@@ -212,17 +217,18 @@ export const cancelarReserva = async (req, res) => {
         }
 
         await prisma.reserva.delete({
-            where: {
-                cod_reserva: cod_reserva,
-            },
+            where: { cod_reserva: cod_reserva },
         });
+
+        enviarCancelacionReserva(reserva).catch((error) =>
+            console.error("Error al enviar la cancelación:", error.message)
+        );
 
         return handleSuccess(res, 200, "Reserva cancelada con éxito.", reserva);
     } catch (error) {
         return handleErrorServer(res, 500, "Error al cancelar la reserva.", error.message);
     }
 };
-
 const estados_asistencia = ["pendiente", "asistio", "no_asistio"];
 
 export const marcarAsistencia = async (req, res) => {
