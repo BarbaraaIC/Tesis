@@ -55,7 +55,7 @@ function plantillaHtml(titulo, lineas) {
     const celdaLogo = HAY_LOGO
         ? `<td style="padding-right:12px;vertical-align:middle">
         <img src="cid:${CID_LOGO}" alt="" height="40" style="display:block;height:40px;width:auto;border:0">
-      </td>`
+        </td>`
         : "";
 
     const subtitulo = SUBTITULO_CORREO
@@ -64,26 +64,26 @@ function plantillaHtml(titulo, lineas) {
 
     const encabezado = `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-      <tr>
+    <tr>
         ${celdaLogo}
         <td style="vertical-align:middle;font-family:Arial,Helvetica,sans-serif">
-          <span style="font-size:20px;font-weight:bold;color:#042f2f">${TITULO_CORREO}</span>${subtitulo}
+            <span style="font-size:20px;font-weight:bold;color:#042f2f">${TITULO_CORREO}</span>${subtitulo}
         </td>
-      </tr>
+    </tr>
     </table>`;
 
     return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  <div style="background:#04B6B6;padding:16px 24px">
-    ${encabezado}
-  </div>
-  <div style="padding:24px">
+    <div style="background:#04B6B6;padding:16px 24px">
+        ${encabezado}
+    </div>
+<div style="padding:24px">
     <h2 style="margin:0 0 16px;font-size:18px;color:#111827">${titulo}</h2>
     ${parrafos}
-  </div>
-  <div style="padding:12px 24px;background:#f9fafb;color:#6b7280;font-size:12px">
+</div>
+<div style="padding:12px 24px;background:#f9fafb;color:#6b7280;font-size:12px">
     Este es un mensaje automático, por favor no respondas a este correo.
-  </div>
+</div>
 </div>`;
 }
 

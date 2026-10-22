@@ -80,6 +80,7 @@ model Reserva {
   hora            DateTime            @db.Time(0)
   tiempo_estimado DateTime            @db.Time(0)
   asistencia      EstadoAsistencia    @default(pendiente)
+  recordatorio_enviado Boolean        @default(false)
   id_asignacion   Int
   asignacion      TratamientoAsignado @relation(fields: [id_asignacion], references: [id_asignacion])
 
