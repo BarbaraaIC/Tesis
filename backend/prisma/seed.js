@@ -22,6 +22,7 @@ async function main() {
       rol: 'administrador',
       ocupacion: 'Administrador',
       fecha_nacimiento: new Date('2000-01-01'),
+      autoriza_datos_salud: false,
     },
   });
 

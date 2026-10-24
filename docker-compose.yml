@@ -32,13 +32,12 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@gmail.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       DATABASE_URL: ${DATABASE_URL:-postgresql://usuario_tesis:clave_tesis_123@db:5432/mydb_tesis?schema=public}
-      # Correo (nodemailer). El usuario y la clave NO llevan valor por defecto:
-      # se leen del archivo .env que está junto a este docker-compose.yml
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       MAIL_FROM: ${MAIL_FROM}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     depends_on:
       db:
         condition: service_healthy
@@ -58,6 +57,7 @@ services:
      # - .env
     environment:
       VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:3000}
+      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       #environment:
       ##VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     depends_on:
