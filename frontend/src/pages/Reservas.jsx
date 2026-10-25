@@ -76,7 +76,6 @@ function yaPaso(fecha) {
   return fecha < hoy
 }
 
-// Indica si un horario del día seleccionado ya pasó (solo aplica si el día es hoy)
 function horaYaPaso(fecha, hora) {
   if (!fecha) {
     return false
@@ -182,7 +181,8 @@ const Reservas = () => {
   const [errorFormulario, setErrorFormulario] = useState('')
   const [mostrarExito, setMostrarExito] = useState(false)
 
-  // Fuerza un re-render 
+  const [seleccionRestaurada, setSeleccionRestaurada] = useState(false)
+
   const [, setTick] = useState(0)
 
   const [, setDatosInvitado] = useState({
@@ -294,6 +294,50 @@ const Reservas = () => {
     cargarHorasOcupadas()
   }, [diaSeleccionado, formulario.id_profesional])
 
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const pendiente = JSON.parse(sessionStorage.getItem('pendingReserva') || 'null')
+
+    if (!token || !pendiente) {
+      return
+    }
+
+    const restaurarSeleccion = async () => {
+      try {
+        const respuesta = await getTratamientosPorServicio(pendiente.id_servicio)
+        let listaDeTratamientos = respuesta.data
+        if (!Array.isArray(respuesta.data)) {
+          listaDeTratamientos = [respuesta.data]
+        }
+        setTratamientos(listaDeTratamientos)
+      } catch (error) {
+        console.error("No se logro cargar los tratamientos de la reserva pendiente", error)
+        setTratamientos([])
+      }
+
+      setFormulario((formularioAnterior) => {
+        return {
+          ...formularioAnterior,
+          id_profesional: formularioAnterior.id_profesional || pendiente.id_profesional,
+          id_servicio: pendiente.id_servicio,
+          cod_tratamiento: pendiente.cod_tratamiento,
+        }
+      })
+
+      const diaPendiente = new Date(pendiente.dia + 'T00:00:00')
+      if (!yaPaso(diaPendiente)) {
+        setDiaSeleccionado(diaPendiente)
+        setMesVisible(new Date(diaPendiente.getFullYear(), diaPendiente.getMonth(), 1))
+        setHoraSeleccionada(pendiente.hora)
+      }
+
+      setSeleccionRestaurada(true)
+      sessionStorage.removeItem('pendingReserva')
+    }
+
+    restaurarSeleccion()
+  }, [])
+
   let horaSeleccionadaValida = null
   if (
     horaSeleccionada &&
@@ -393,19 +437,30 @@ const Reservas = () => {
     setHoraSeleccionada(null)
   }
 
+  const guardarSeleccionYNavegar = (ruta) => {
+    sessionStorage.setItem('pendingReserva', JSON.stringify({
+      id_profesional: formulario.id_profesional,
+      id_servicio: formulario.id_servicio,
+      cod_tratamiento: formulario.cod_tratamiento,
+      dia: fechaAtexto(diaSeleccionado),
+      hora: horaSeleccionadaValida,
+    }))
+    navigate(ruta)
+  }
+
   const reservar = async (evento) => {
     evento.preventDefault()
     setErrorFormulario('')
 
-    const token = localStorage.getItem('token')
-
-    if (!token) {
-      navigate('/login')
+    if (!diaSeleccionado || !horaSeleccionadaValida) {
+      setErrorFormulario("Selecciona un día y un horario en el calendario.")
       return
     }
 
-    if (!diaSeleccionado || !horaSeleccionadaValida) {
-      setErrorFormulario("Selecciona un día y un horario en el calendario.")
+    const token = localStorage.getItem('token')
+
+    if (!token) {
+      guardarSeleccionYNavegar('/login')
       return
     }
 
@@ -458,6 +513,7 @@ const Reservas = () => {
 
       limpiarFormulario()
       setDatosInvitado({ nombre: '', apellido: '', email: '', telefono: '' })
+      setSeleccionRestaurada(false)
       setMostrarExito(true)
     } catch (errorCapturado) {
       setErrorFormulario(errorCapturado.message)
@@ -512,6 +568,11 @@ const Reservas = () => {
       )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        {seleccionRestaurada && (
+          <p className="text-sm text-gray-600 mb-4">
+            Retomamos tu selección. Revisa los datos y pulsa Reservar.
+          </p>
+        )}
         {errorFormulario && <p className="text-red-600 text-sm mb-4">{errorFormulario}</p>}
 
         <form onSubmit={reservar} className="flex flex-col gap-5">
@@ -670,9 +731,13 @@ const Reservas = () => {
               </div>
               <p className="text-xs text-gray-400 mt-2">
                 Te enviaremos la confirmación al correo y WhatsApp. ¿Ya tienes cuenta?{' '}
-                <button type="button" onClick={() => navigate('/login')} className="text-[#505FB6] underline">
+                <button type="button" onClick={() => guardarSeleccionYNavegar('/login')} className="text-[#505FB6] underline">
                   Inicia sesión
-                </button> para autocompletar tus datos.
+                </button>
+                {' '}o{' '}
+                <button type="button" onClick={() => guardarSeleccionYNavegar('/register')} className="text-[#505FB6] underline">
+                  regístrate
+                </button>.
               </p>
             </div>
           )}

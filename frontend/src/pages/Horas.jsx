@@ -6,7 +6,7 @@ const nombre_meses_cortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'A
 const nombre_dias_cortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
 
 
-const horas_minimas_para_cancelar = 2
+const horas_minimas_para_cancelar = 3
 
 const colores_tratamiento = ['#0E7C7C', '#505FB6', '#B45309', '#9D174D', '#4D7C0F']
 
