@@ -5,6 +5,7 @@ import servicioRoutes from './servicio.routes.js';
 import tratamientoRoutes from './tratamiento.routes.js';
 import tratamientoAsigRoutes from './tratamientoAsignado.routes.js'
 import reservasRoutes from './reservas.routes.js'
+import historialMedicoRoutes from './historialMedico.routes.js'
 
 const router = Router();
 
@@ -14,4 +15,5 @@ router.use('/servicios', servicioRoutes);
 router.use('/tratamientos', tratamientoRoutes);
 router.use('/tratamientosAsig', tratamientoAsigRoutes);
 router.use('/reservas', reservasRoutes);
+router.use('/historialMedico', historialMedicoRoutes);
 export default router;

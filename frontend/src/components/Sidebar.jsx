@@ -8,6 +8,7 @@ import {
   User,
   LogOut,
   ChevronLeft,
+  FileText,
 } from 'lucide-react'
 
 const Sidebar = ({ colapsado, setColapsado }) => {
@@ -76,6 +77,12 @@ const Sidebar = ({ colapsado, setColapsado }) => {
         rolNormalizado === 'administrador' || rolNormalizado === 'profesional',
     },
     {
+      nombre: 'Historial Médico',
+      icono: FileText,
+      ruta: '/historialMedico',
+      visible: true,
+    },
+    {
       nombre: 'Reservas',
       icono: CalendarCheck,
       ruta: '/reservas',
@@ -93,6 +100,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
       ruta: '/perfil',
       visible: true,
     },
+
   ]
 
   return (
