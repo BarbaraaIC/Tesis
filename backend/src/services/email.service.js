@@ -55,7 +55,7 @@ function plantillaHtml(titulo, lineas) {
     const celdaLogo = HAY_LOGO
         ? `<td style="padding-right:12px;vertical-align:middle">
         <img src="cid:${CID_LOGO}" alt="" height="40" style="display:block;height:40px;width:auto;border:0">
-      </td>`
+        </td>`
         : "";
 
     const subtitulo = SUBTITULO_CORREO
@@ -64,26 +64,26 @@ function plantillaHtml(titulo, lineas) {
 
     const encabezado = `
     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-      <tr>
+    <tr>
         ${celdaLogo}
         <td style="vertical-align:middle;font-family:Arial,Helvetica,sans-serif">
-          <span style="font-size:20px;font-weight:bold;color:#042f2f">${TITULO_CORREO}</span>${subtitulo}
+            <span style="font-size:20px;font-weight:bold;color:#042f2f">${TITULO_CORREO}</span>${subtitulo}
         </td>
-      </tr>
+    </tr>
     </table>`;
 
     return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  <div style="background:#04B6B6;padding:16px 24px">
-    ${encabezado}
-  </div>
-  <div style="padding:24px">
+    <div style="background:#04B6B6;padding:16px 24px">
+        ${encabezado}
+    </div>
+<div style="padding:24px">
     <h2 style="margin:0 0 16px;font-size:18px;color:#111827">${titulo}</h2>
     ${parrafos}
-  </div>
-  <div style="padding:12px 24px;background:#f9fafb;color:#6b7280;font-size:12px">
+</div>
+<div style="padding:12px 24px;background:#f9fafb;color:#6b7280;font-size:12px">
     Este es un mensaje automático, por favor no respondas a este correo.
-  </div>
+</div>
 </div>`;
 }
 
@@ -123,6 +123,7 @@ export async function enviarConfirmacionReserva(reserva) {
             `Hola ${escaparHtml(d.paciente.nombre)},`,
             `Tu hora de <strong>${escaparHtml(d.tratamiento)}</strong> con ${escaparHtml(nombreProfesional)} quedó reservada.`,
             `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
+            `Si no puedes asistir, cancela tu hora desde la plataforma con <strong>3 horas de anticipación</strong>.`,
         ]),
     });
 
@@ -152,7 +153,37 @@ export async function enviarRecordatorioReserva(reserva) {
             `Hola ${escaparHtml(d.paciente.nombre)},`,
             `Te recordamos tu hora de <strong>${escaparHtml(d.tratamiento)}</strong> con ${escaparHtml(nombreProfesional)}.`,
             `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
-            "Si no puedes asistir, cancela tu hora desde la plataforma.",
+            `Si no puedes asistir, cancela tu hora desde la plataforma con <strong>3 horas de anticipación</strong>.`,
         ]),
     });
+}
+
+export async function enviarCancelacionReserva(reserva) {
+    const d = armarDatos(reserva);
+    const nombrePaciente = `${d.paciente.nombre} ${d.paciente.apellido}`;
+    const nombreProfesional = `${d.profesional.nombre} ${d.profesional.apellido}`;
+ 
+    const alPaciente = enviarCorreo({
+        to: d.paciente.correo,
+        subject: "Tu hora fue cancelada",
+        text: `Hola ${d.paciente.nombre}, tu hora de ${d.tratamiento} con ${nombreProfesional} del ${d.fecha} a las ${d.hora} fue cancelada.`,
+        html: plantillaHtml("Tu hora fue cancelada", [
+            `Hola ${escaparHtml(d.paciente.nombre)},`,
+            `Tu hora de <strong>${escaparHtml(d.tratamiento)}</strong> con ${escaparHtml(nombreProfesional)} fue cancelada.`,
+            `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
+            "Si lo necesitas, puedes reservar una nueva hora desde la plataforma.",
+        ]),
+    });
+ 
+    const alProfesional = enviarCorreo({
+        to: d.profesional.correo,
+        subject: "Hora cancelada",
+        text: `La hora de ${d.tratamiento} con ${nombrePaciente} del ${d.fecha} a las ${d.hora} fue cancelada.`,
+        html: plantillaHtml("Hora cancelada", [
+            `La hora de <strong>${escaparHtml(d.tratamiento)}</strong> con ${escaparHtml(nombrePaciente)} fue cancelada.`,
+            `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
+        ]),
+    });
+ 
+    await Promise.all([alPaciente, alProfesional]);
 }

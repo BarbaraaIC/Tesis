@@ -1,10 +1,9 @@
 "use strict";
 import { prisma } from "../config/configDb.js";
 import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
-import { enviarConfirmacionReserva } from "../services/email.service.js";
+import { enviarConfirmacionReserva, enviarCancelacionReserva,  } from "../services/email.service.js";
+import { isAdminOrProfesional } from "../middleware/authorization.middleware.js";
 
-// El middleware deja la sesión en req.usuario = { rol, sub }, donde sub es el RUT.
-// Este helper busca el id_usuario correspondiente.
 async function obtenerUsuarioActual(req) {
     return prisma.usuario.findUnique({
         where: { rut: req.usuario?.sub },
@@ -201,43 +200,36 @@ export const cancelarReserva = async (req, res) => {
         }
 
         const reserva = await prisma.reserva.findUnique({
-            where: {
-                cod_reserva: cod_reserva,
+            where: { cod_reserva: cod_reserva },
+            include: {
+                asignacion: {
+                    include: {
+                        usuario: { select: { nombre: true, apellido: true, correo: true } },
+                        profesional: { select: { nombre: true, apellido: true, correo: true } },
+                        tratamiento: true,
+                    },
+                },
             },
-            include: { asignacion: true },
         });
 
         if (!reserva) {
             return handleErrorClient(res, 404, "La reserva no fue encontrada.");
         }
 
-
-        const esAdmin = req.usuario?.rol === "administrador";
-        if (!esAdmin) {
-            const usuarioActual = await obtenerUsuarioActual(req);
-            const esParticipante =
-                !!usuarioActual &&
-                (reserva.asignacion.id_usuario === usuarioActual.id_usuario ||
-                    reserva.asignacion.id_profesional === usuarioActual.id_usuario);
-
-            if (!esParticipante) {
-                return handleErrorClient(res, 403, "No tienes permiso para cancelar esta reserva.");
-            }
-        }
-
         await prisma.reserva.delete({
-            where: {
-                cod_reserva: cod_reserva,
-            },
+            where: { cod_reserva: cod_reserva },
         });
+
+        enviarCancelacionReserva(reserva).catch((error) =>
+            console.error("Error al enviar la cancelación:", error.message)
+        );
 
         return handleSuccess(res, 200, "Reserva cancelada con éxito.", reserva);
     } catch (error) {
         return handleErrorServer(res, 500, "Error al cancelar la reserva.", error.message);
     }
 };
-
-const ESTADOS_ASISTENCIA = ["PENDIENTE", "ASISTIO", "NO_ASISTIO"];
+const estados_asistencia = ["pendiente", "asistio", "no_asistio"];
 
 export const marcarAsistencia = async (req, res) => {
     try {
@@ -248,7 +240,7 @@ export const marcarAsistencia = async (req, res) => {
             return handleErrorClient(res, 400, "El código de la reserva no es válido.");
         }
 
-        if (!ESTADOS_ASISTENCIA.includes(asistencia)) {
+        if (!estados_asistencia.includes(asistencia)) {
             return handleErrorClient(res, 400, "El estado de asistencia no es válido.");
         }
 
@@ -261,16 +253,9 @@ export const marcarAsistencia = async (req, res) => {
             return handleErrorClient(res, 404, "La reserva no fue encontrada.");
         }
 
-        const esAdmin = req.usuario?.rol === "administrador";
-        const usuarioActual = await obtenerUsuarioActual(req);
-        const esSuProfesional =
-            !!usuarioActual && reserva.asignacion.id_profesional === usuarioActual.id_usuario;
-
-        if (!esAdmin && !esSuProfesional) {
+        if (!isAdminOrProfesional) {
             return handleErrorClient(res, 403, "No tienes permiso para marcar la asistencia de esta reserva.");
         }
-
-        // No se puede marcar la asistencia de una hora que aún no llega
         const hoy = new Date();
         const hoyTexto =
             hoy.getFullYear() + "-" +
@@ -286,7 +271,6 @@ export const marcarAsistencia = async (req, res) => {
             where: { cod_reserva: cod_reserva },
             data: { asistencia: asistencia },
         });
-
         return handleSuccess(res, 200, "Asistencia actualizada con éxito.", reservaActualizada);
     } catch (error) {
         return handleErrorServer(res, 500, "Error al actualizar la asistencia.", error.message);

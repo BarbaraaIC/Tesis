@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./config/configDb.js";
 import routes from "./routes/index.routes.js";
+import { iniciarRecordatorios } from "./services/recordatorio.service.js";
 
 dotenv.config();
 
@@ -25,4 +26,5 @@ async function start() {
     });
 }
 
+iniciarRecordatorios();
 start();

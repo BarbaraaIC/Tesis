@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
+import { guardarSesion } from "../services/sesion.service.js";
 
 const ocupaciones = [
     'Estudiante',
@@ -46,13 +48,19 @@ const minStr = formatoFecha(new Date(new Date().getFullYear() - 99, 0, 1))
 
 function Register (){
     const navigate = useNavigate()
+    const location = useLocation()
+
+    // Si llegamos desde el Login con una cuenta de Google nueva, vienen estos datos
+    const googleInicial = location.state
+
     const [step, setStep] = useState(1)
     const [error, setError] = useState('')
     const [enviando, setEnviando] = useState(false)
-    const [nombre, setNombre] = useState('')
-    const [apellido, setApellido] = useState('')
+    const [googleCredential, setGoogleCredential] = useState(googleInicial?.credential ?? null)
+    const [nombre, setNombre] = useState(googleInicial?.nombre ?? '')
+    const [apellido, setApellido] = useState(googleInicial?.apellido ?? '')
     const [rut, setRut] = useState('')
-    const [correo, setCorreo] = useState('')
+    const [correo, setCorreo] = useState(googleInicial?.correo ?? '')
     const [telefono, setTelefono] = useState('')
     const [password, setPassword] = useState('')
     const [fecha_nacimiento, setFecha_nacimiento] = useState('')
@@ -92,7 +100,8 @@ function Register (){
         if (direccion.trim().length < 5 || !direccion_val.test(direccion.trim())) {
             return 'La dirección debe tener al menos 5 caracteres y solo letras, números, espacios, puntos, comas, # o guiones.'
         }
-        if (!password_val.test(password)) {
+        // Con Google no hay contraseña
+        if (!googleCredential && !password_val.test(password)) {
             return 'La contraseña debe tener entre 8 y 30 caracteres'
         }
         return ''
@@ -135,6 +144,48 @@ function Register (){
         setStep(siguientePaso)
     }
 
+    const alGoogle = async ({ credential }) => {
+        setError('')
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential }),
+            })
+            const json = await res.json()
+
+            if (!res.ok) {
+                setError(json.message || 'No se pudo continuar con Google.')
+                return
+            }
+
+            const data = json.data
+            if (data?.registroPendiente) {
+                // cuenta nueva, precarga los datos de google
+                setGoogleCredential(credential)
+                setNombre(data.nombre ?? '')
+                setApellido(data.apellido ?? '')
+                setCorreo(data.correo ?? '')
+                setStep(1)
+            } else {
+                // la cuenta ya existe, inicia sesión
+                navigate(guardarSesion(data))
+            }
+        } catch {
+            setError('Error de conexión con el servidor')
+        }
+    }
+
+    const quitarGoogle = () => {
+        setGoogleCredential(null)
+        setNombre('')
+        setApellido('')
+        setCorreo('')
+        setPassword('')
+        setStep(1)
+        setError('')
+    }
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         setError('');
@@ -147,27 +198,39 @@ function Register (){
 
         const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
 
+        const url = googleCredential
+            ? `${import.meta.env.VITE_BACKEND_URL}/api/auth/google/registro`
+            : `${import.meta.env.VITE_BACKEND_URL}/api/auth/register`
+
+        const body = {
+            nombre, apellido, rut, telefono,
+            fecha_nacimiento: fecha_nacimiento,
+            ocupacion: ocupacionFinal, direccion,
+            enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
+            medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
+
+            ...(googleCredential ? { credential: googleCredential } : { correo, password }),
+        }
+
         setEnviando(true)
         try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
-            //const res = await fetch('http://localhost:3000/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                nombre, apellido, rut, correo, telefono, password,
-                fecha_nacimiento: fecha_nacimiento,
-                ocupacion: ocupacionFinal, direccion,
-                enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
-                medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
-            }),
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
             })
 
             const data = await res.json()
-                if (!res.ok) {
-                    setError(data.message || 'Error al registrar.')
-                        return
-                }
+            if (!res.ok) {
+                setError(data.message || 'Error al registrar.')
+                return
+            }
+
+            if (googleCredential) {
+                navigate(guardarSesion(data.data))
+            } else {
                 navigate('/login')
+            }
         } catch {
             setError('Error de conexión con el servidor')
         } finally {
@@ -189,6 +252,32 @@ return (
             {error && (
                 <p className="text-red-600 text-sm mb-4 text-center">{error}</p>
             )}
+
+            {step === 1 && !googleCredential && (
+                <div className="mb-6 flex flex-col items-center gap-2">
+                    <GoogleLogin
+                        onSuccess={alGoogle}
+                        onError={() => setError('No se pudo continuar con Google.')}
+                    />
+                    <span className="text-xs text-gray-500">o completa el formulario</span>
+                </div>
+            )}
+
+            {googleCredential && (
+                <div className="mb-4 text-center">
+                    <p className="text-sm text-gray-600">
+                        Cuenta de Google conectada. Completa tus datos para terminar.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={quitarGoogle}
+                        className="text-xs text-[#505FB6] hover:underline cursor-pointer mt-1"
+                    >
+                        Usar otra cuenta
+                    </button>
+                </div>
+            )}
+
             {step === 1 && (
                 <>
                 <div className="mb-4">
@@ -249,8 +338,9 @@ return (
                             type="email"
                             value={correo}
                             onChange={(e) => setCorreo(e.target.value)}
+                            readOnly={!!googleCredential}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
+                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6] ${googleCredential ? 'bg-gray-100 text-gray-500' : ''}`}
                         />
                 </div>
                 <div className="mb-4">
@@ -274,18 +364,21 @@ return (
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
                         />
                 </div>
-                <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
-                        />
-                </div>
 
-                <div className="flex gap-3">
+                {!googleCredential && (
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
+                            />
+                    </div>
+                )}
+
+                <div className={`flex gap-3 ${googleCredential ? 'mt-6' : ''}`}>
                     <button type="button" onClick={() => { setError(''); setStep(1) }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors cursor-pointer">
                         Anterior
                     </button>
@@ -295,41 +388,41 @@ return (
                 </div>
                 </>
             )}
+
             {step === 3 && (
                 <>
-                
-            <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ocupación</label>
-                <select
-                    value={ocupacion}
-                    onChange={(e) => {
-                        setOcupacion(e.target.value)
-                        if (e.target.value !== 'Otra') {
-                            setOcupacionOtra('')
-                        }
-                    }}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
-                >
-                    <option value="">Selecciona una ocupación</option>
-                    {ocupaciones.map((ocupacionActual) => (
-                    <option key={ocupacionActual} value={ocupacionActual}>
-                        {ocupacionActual}
-                    </option>
-                    ))}
-            </select>
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ocupación</label>
+                    <select
+                        value={ocupacion}
+                        onChange={(e) => {
+                            setOcupacion(e.target.value)
+                            if (e.target.value !== 'Otra') {
+                                setOcupacionOtra('')
+                            }
+                        }}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
+                    >
+                        <option value="">Selecciona una ocupación</option>
+                        {ocupaciones.map((ocupacionActual) => (
+                            <option key={ocupacionActual} value={ocupacionActual}>
+                                {ocupacionActual}
+                            </option>
+                        ))}
+                    </select>
 
-            {ocupacion === 'Otra' && (
-                <input
-                type="text"
-                value={ocupacionOtra}
-                onChange={(e) => setOcupacionOtra(e.target.value)}
-                placeholder="Especifica tu ocupación"
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
-                />
-            )}
-            </div>
+                    {ocupacion === 'Otra' && (
+                        <input
+                            type="text"
+                            value={ocupacionOtra}
+                            onChange={(e) => setOcupacionOtra(e.target.value)}
+                            placeholder="Especifica tu ocupación"
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-2 focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
+                        />
+                    )}
+                </div>
 
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">¿Algún antecedente de salud diagnosticado?</label>
@@ -361,13 +454,13 @@ return (
                             <input type="radio" name="tieneMedicamentos" value="si" checked={tieneMedicamentos === 'si'} onChange={() => setTieneMedicamentos('si')} /> Sí
                         </label>
                     </div>
-                        {tieneMedicamentos === 'si' && (
-                            <textarea
+                    {tieneMedicamentos === 'si' && (
+                        <textarea
                             value={medicamentos}
-                        onChange={(e) => setMedicamentos(e.target.value)}
-                        className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
-                        rows="2"
-                    />
+                            onChange={(e) => setMedicamentos(e.target.value)}
+                            className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
+                            rows="2"
+                        />
                     )}
                 </div>
 

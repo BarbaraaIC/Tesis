@@ -10,6 +10,7 @@ import Servicios from './pages/Servicios'
 import Horas from './pages/Horas'
 import ProtectRoutes from './components/ProtectRoutes'
 import Layout from './components/Layout'
+import Historial from './pages/Historial'
 
 function App() {
   return (
@@ -48,6 +49,15 @@ function App() {
         <Route path="/perfil" element={
           <ProtectRoutes><Perfil /></ProtectRoutes>
         } />
+        <Route path="/historialMedico" element={
+            <Historial/>
+        } />
+            <Route path="/historialMedico/:id_usuario" element={
+        <ProtectRoutes rolesPermitidos={['administrador', 'profesional']}>
+          <Historial />
+        </ProtectRoutes>
+      } />
+
 
       </Route>
       </Routes>
