@@ -10,13 +10,13 @@ import { crearReserva, getDisponibilidadPorProfesional } from '../services/reser
 const duracion_bloque_en_min = 60
 
 const horario_atencion = {
-  0: { apertura: '08:00', cierre: '21:00' },
+  0: { apertura: '08:00', cierre: '11:00', apertura2: '15:30', cierre2: '21:00' },
   1: { apertura: '08:00', cierre: '21:00' },
   2: { apertura: '08:00', cierre: '21:00' },
   3: { apertura: '08:00', cierre: '21:00' },
   4: { apertura: '08:00', cierre: '21:00' },
   5: { apertura: '08:00', cierre: '21:00' },
-  6: { apertura: '08:00', cierre: '19:00' },
+  6: { apertura: '08:00', cierre: '19:00'},
 }
 
 const nombre_meses = [
@@ -44,11 +44,18 @@ function generarHorariosDelDia(fecha) {
   const horario = horario_atencion[diaDeLaSemana]
 
   const minutoInicio = horaAMinutos(horario.apertura)
+  const minutoInicio2 = horario.apertura2 ? horaAMinutos(horario.apertura2) : null
   const minutoFin = horaAMinutos(horario.cierre)
+  const minutoFin2 = horario.cierre2 ? horaAMinutos(horario.cierre2) : null
 
   const horarios = []
   for (let minuto = minutoInicio; minuto + duracion_bloque_en_min <= minutoFin; minuto += duracion_bloque_en_min) {
     horarios.push(minutosAHora(minuto))
+  }
+  if (minutoInicio2 && minutoFin2) {
+    for (let minuto = minutoInicio2; minuto + duracion_bloque_en_min <= minutoFin2; minuto += duracion_bloque_en_min) {
+      horarios.push(minutosAHora(minuto))
+    }
   }
   return horarios
 }

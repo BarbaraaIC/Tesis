@@ -4,14 +4,6 @@ import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers
 import { registroValidation } from "../validations/usuario.validation.js";
 import { prisma } from "../config/configDb.js";
 
-// NUEVO: quita el hash de la contraseña antes de enviar un usuario al frontend
-function sinPassword(usuario) {
-    if (!usuario) return usuario;
-    // eslint-disable-next-line no-unused-vars
-    const { password, ...resto } = usuario;
-    return resto;
-}
-
 export const crearUsuario = async (req, res) => {
 
     const { error, value} = registroValidation.validate(req.body); 
@@ -120,7 +112,7 @@ export const obtenerUsuarios = async (req, res) => {
                 }
 
         // CAMBIO: antes se enviaba el usuario completo, incluido el hash de la contraseña
-        return handleSuccess(res, 200, "Usuarios obtenidos correctamente.", usuarios.map(sinPassword));
+        return handleSuccess(res, 200, "Usuarios obtenidos correctamente.", usuarios);
     } catch (error) {
         return handleErrorServer(res, 500, "Error al obtener usuarios.", error.message);
     }
@@ -165,10 +157,6 @@ export const cambiarRolUsuario = async (req, res) => {
         return handleErrorServer(res, 500, "Error al actualizar el rol.", error.message);
     }
 };
-
-/*export const ocultarUsuarios = async (req, res) => {
-    REVISAR ESTO DESPUES DE AVANZAR CON LAS RESERVAS
-}*/
 
 export const actualizarUsuario = async (req, res) => {
     try {
@@ -215,7 +203,6 @@ export const actualizarUsuario = async (req, res) => {
             }
         }
 
-        // NUEVO: una vez aceptada, la autorización no se puede quitar
         if (
             usuarioExistente.autoriza_datos_salud &&
             autoriza_datos_salud !== undefined &&
@@ -224,8 +211,6 @@ export const actualizarUsuario = async (req, res) => {
             return handleErrorClient(res, 400, "La autorización de datos de salud ya fue aceptada y no se puede modificar.");
         }
 
-        // NUEVO: si se envían datos de salud, la autorización debe estar marcada
-        // (la que viene en la petición o, si no viene, la que ya estaba guardada)
         let autorizaFinal = usuarioExistente.autoriza_datos_salud;
         if (autoriza_datos_salud !== undefined) {
             autorizaFinal = Boolean(autoriza_datos_salud);
@@ -259,9 +244,7 @@ export const actualizarUsuario = async (req, res) => {
             data: datosActualizados
         });
 
-        // CAMBIO: antes se devolvía el usuario completo, con el hash de la contraseña,
-        // y el frontend lo guarda en su estado
-        return handleSuccess(res, 200, "Datos de usuario actualizado correctamente.", sinPassword(usuarioActualizado));
+        return handleSuccess(res, 200, "Datos de usuario actualizado correctamente.", usuarioActualizado);
     } catch (error) {
         return handleErrorServer(res, 500, "Hubo un problema en el servidor al datos del usuario.", error.message);
     }

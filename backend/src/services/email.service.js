@@ -123,6 +123,7 @@ export async function enviarConfirmacionReserva(reserva) {
             `Hola ${escaparHtml(d.paciente.nombre)},`,
             `Tu hora de <strong>${escaparHtml(d.tratamiento)}</strong> con ${escaparHtml(nombreProfesional)} quedó reservada.`,
             `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
+            `Si no puedes asistir, cancela tu hora desde la plataforma con <strong>3 horas de anticipación</strong>.`,
         ]),
     });
 
@@ -152,7 +153,7 @@ export async function enviarRecordatorioReserva(reserva) {
             `Hola ${escaparHtml(d.paciente.nombre)},`,
             `Te recordamos tu hora de <strong>${escaparHtml(d.tratamiento)}</strong> con ${escaparHtml(nombreProfesional)}.`,
             `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
-            "Si no puedes asistir, cancela tu hora desde la plataforma.",
+            `Si no puedes asistir, cancela tu hora desde la plataforma con <strong>3 horas de anticipación</strong>.`,
         ]),
     });
 }
