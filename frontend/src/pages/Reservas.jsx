@@ -5,7 +5,7 @@ import { getUsuarios, getProfesionales } from '../services/usuariosServices.jsx'
 import { getServicios } from '../services/serviciosServices.jsx'
 import { getTratamientosPorServicio } from '../services/tratamientosServices.jsx'
 import { asignarTratamiento} from '../services/tratamientosAsigServices.jsx'
-import { crearReserva, getDisponibilidadPorProfesional } from '../services/reservasServices.jsx'
+import { crearReserva, getDisponibilidadPorProfesional, getReservasPorUsuario } from '../services/reservasServices.jsx'
 
 const duracion_bloque_en_min = 60
 
@@ -489,6 +489,15 @@ const Reservas = () => {
     setEnviando(true)
 
     try {
+      const respuestaReservas = await getReservasPorUsuario(formulario.id_usuario)
+      const reservasDelUsuarioEnElDia = respuestaReservas.data.filter((reserva) => {
+        return fechaTextoDesdeISO(reserva.dia) === fechaAtexto(diaSeleccionado)
+      })
+
+      if (reservasDelUsuarioEnElDia.length >= 3) {
+        setErrorFormulario("Solo puedes tener un máximo de 3 reservas por día.")
+        return
+      }
       let observacionesParaEnviar = formulario.observaciones
       if (esPaciente) {
         observacionesParaEnviar = ''

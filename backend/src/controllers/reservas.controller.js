@@ -32,6 +32,19 @@ export const crearReserva = async (req, res) => {
         const fechaDia = new Date(dia);
         const fechaHora = new Date(`${dia}T${hora}`);
 
+        const reservasDeUsuarioPorDia = await prisma.reserva.findMany({
+            where: {
+                dia: fechaDia,
+                asignacion: {
+                    id_usuario: asignacionExiste.id_usuario,
+                },
+            },
+        });
+
+        if (reservasDeUsuarioPorDia.length >= 3) {
+            return handleErrorClient(res, 400, "Solo puedes tener un máximo de 3 reservas por día.");
+        }
+
         const reservaExistente = await prisma.reserva.findFirst({
             where: {
                 dia: fechaDia,
@@ -230,6 +243,7 @@ export const cancelarReserva = async (req, res) => {
     }
 };
 const estados_asistencia = ["pendiente", "asistio", "no_asistio"];
+
 
 export const marcarAsistencia = async (req, res) => {
     try {
