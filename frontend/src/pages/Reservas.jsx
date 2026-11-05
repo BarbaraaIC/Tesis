@@ -147,6 +147,8 @@ function fechaTextoDesdeISO(fechaISO) {
   return fechaISO.slice(0, 10)
 }
 
+const claseSelect = 'w-full min-w-0 border rounded-lg p-2 text-sm text-gray-800 bg-white'
+
 const Reservas = () => {
   const { usuario, rol } = useAuth()
   const navigate = useNavigate()
@@ -445,11 +447,12 @@ const Reservas = () => {
   }
 
   const guardarSeleccionYNavegar = (ruta) => {
+    // Solo guardamos lo que exista: así "Inicia sesión" / "regístrate" funcionan siempre
     sessionStorage.setItem('pendingReserva', JSON.stringify({
       id_profesional: formulario.id_profesional,
       id_servicio: formulario.id_servicio,
       cod_tratamiento: formulario.cod_tratamiento,
-      dia: fechaAtexto(diaSeleccionado),
+      dia: diaSeleccionado ? fechaAtexto(diaSeleccionado) : null,
       hora: horaSeleccionadaValida,
     }))
     navigate(ruta)
@@ -458,6 +461,22 @@ const Reservas = () => {
   const reservar = async (evento) => {
     evento.preventDefault()
     setErrorFormulario('')
+
+    // Validación manual (el form tiene noValidate para que el navegador no bloquee el envío en silencio)
+    if (!formulario.id_profesional) {
+      setErrorFormulario("Selecciona un profesional.")
+      return
+    }
+
+    if (!formulario.id_servicio) {
+      setErrorFormulario("Selecciona un servicio.")
+      return
+    }
+
+    if (!formulario.cod_tratamiento) {
+      setErrorFormulario("Selecciona un tratamiento.")
+      return
+    }
 
     if (!diaSeleccionado || !horaSeleccionadaValida) {
       setErrorFormulario("Selecciona un día y un horario en el calendario.")
@@ -548,7 +567,7 @@ const Reservas = () => {
 
   const hayToken = !!localStorage.getItem('token')
 
-  let claseContenedorSelectorPersonas = 'grid grid-cols-2 gap-4'
+  let claseContenedorSelectorPersonas = 'grid grid-cols-1 sm:grid-cols-2 gap-4'
   if (esPaciente || esProfesional || !hayToken) {
     claseContenedorSelectorPersonas = 'grid grid-cols-1 gap-4'
   }
@@ -566,9 +585,9 @@ const Reservas = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto">
       {mostrarExito && (
-        <div className="fixed bottom-4 right-4 flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 min-w-[300px]">
+        <div className="fixed bottom-4 right-4 left-4 sm:left-auto z-[60] flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 sm:min-w-[300px]">
           <span className="flex items-center justify-center w-5 h-5 bg-green-500 text-white rounded-full flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -583,20 +602,19 @@ const Reservas = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
         {seleccionRestaurada && (
           <p className="text-sm text-gray-600 mb-4">
             Retomamos tu selección. Revisa los datos y pulsa Reservar.
           </p>
         )}
-        {errorFormulario && <p className="text-red-600 text-sm mb-4">{errorFormulario}</p>}
 
-        <form onSubmit={reservar} className="flex flex-col gap-5">
+        <form onSubmit={reservar} noValidate className="flex flex-col gap-5">
           <div className={claseContenedorSelectorPersonas}>
             {!esPaciente && hayToken && (
-              <div>
+              <div className="min-w-0">
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Paciente</label>
-                <select name="id_usuario" value={formulario.id_usuario} onChange={actualizarCampo} required={hayToken} className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white">
+                <select name="id_usuario" value={formulario.id_usuario} onChange={actualizarCampo} className={claseSelect}>
                   <option value="">Selecciona un paciente</option>
                   {pacientes.map((paciente) => (
                     <option key={paciente.id_usuario} value={paciente.id_usuario}>{paciente.nombre} {paciente.apellido}</option>
@@ -606,9 +624,9 @@ const Reservas = () => {
             )}
 
             {!esProfesional && (
-              <div>
+              <div className="min-w-0">
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Profesional</label>
-                <select name="id_profesional" value={formulario.id_profesional} onChange={actualizarCampo} required className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white">
+                <select name="id_profesional" value={formulario.id_profesional} onChange={actualizarCampo} className={claseSelect}>
                   <option value="">Selecciona un profesional</option>
                   {profesionales.map((profesionalActual) => (
                     <option key={profesionalActual.id_usuario} value={profesionalActual.id_usuario}>{profesionalActual.nombre} {profesionalActual.apellido}</option>
@@ -618,10 +636,10 @@ const Reservas = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="min-w-0">
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Servicio</label>
-              <select name="id_servicio" value={formulario.id_servicio} onChange={cambiarServicio} required className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white">
+              <select name="id_servicio" value={formulario.id_servicio} onChange={cambiarServicio} className={claseSelect}>
                 <option value="">Selecciona un servicio</option>
                 {servicios.map((servicioActual) => (
                   <option key={servicioActual.id_servicio} value={servicioActual.id_servicio}>{servicioActual.tipo_servicio}</option>
@@ -629,15 +647,14 @@ const Reservas = () => {
               </select>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tratamiento</label>
               <select
                 name="cod_tratamiento"
                 value={formulario.cod_tratamiento}
                 onChange={actualizarCampo}
-                required
                 disabled={!formulario.id_servicio || cargandoTratamientos}
-                className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white disabled:bg-gray-100"
+                className={claseSelect + ' disabled:bg-gray-100'}
               >
                 <option value="">{textoOpcionTratamiento}</option>
                 {tratamientos.map((tratamientoActual) => (
@@ -656,27 +673,32 @@ const Reservas = () => {
           {!esPaciente && hayToken && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Observaciones</label>
-              <textarea name="observaciones" value={formulario.observaciones} onChange={actualizarCampo} placeholder="Opcional" className="w-full border rounded-lg p-2 text-sm text-gray-800 bg-white" />
+              <textarea name="observaciones" value={formulario.observaciones} onChange={actualizarCampo} placeholder="Opcional" className="w-full min-w-0 border rounded-lg p-2 text-sm text-gray-800 bg-white" />
             </div>
           )}
 
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Fecha y hora</label>
 
-            <div className="border border-gray-200 rounded-lg p-4">
+            <div className="border border-gray-200 rounded-lg p-2 sm:p-4">
               <div className="flex items-center justify-between mb-3">
-                <button type="button" onClick={irAlMesAnterior} className="text-gray-400 hover:text-gray-700 px-2">‹</button>
+                <button type="button" onClick={irAlMesAnterior} className="text-gray-400 hover:text-gray-700 px-3 py-1 text-lg">‹</button>
                 <span className="text-sm font-semibold text-gray-700">
                   {nombre_meses[mesVisible.getMonth()]} {mesVisible.getFullYear()}
                 </span>
-                <button type="button" onClick={irAlMesSiguiente} className="text-gray-400 hover:text-gray-700 px-2">›</button>
+                <button type="button" onClick={irAlMesSiguiente} className="text-gray-400 hover:text-gray-700 px-3 py-1 text-lg">›</button>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-400 mb-1">
-                {nombre_dias.map((dia) => <div key={dia}>{dia}</div>)}
+              <div className="grid gap-1 text-center text-xs text-gray-400 mb-1" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+                {nombre_dias.map((dia) => (
+                  <div key={dia}>
+                    <span className="sm:hidden">{dia[0]}</span>
+                    <span className="hidden sm:inline">{dia}</span>
+                  </div>
+                ))}
               </div>
 
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
                 {diasDelMes.map((fecha, indice) => {
                   if (!fecha) {
                     return <div key={'vacio-' + indice} />
@@ -685,12 +707,13 @@ const Reservas = () => {
                   const pasado = yaPaso(fecha)
                   const seleccionado = esElMismoDia(fecha, diaSeleccionado)
 
-                  let clase = 'text-sm p-2 rounded-lg text-gray-600 hover:bg-[#505FB6]/10'
+                  const base = 'w-full min-w-0 text-sm py-2 rounded-lg '
+                  let clase = base + 'text-gray-600 hover:bg-[#505FB6]/10'
                   if (pasado) {
-                    clase = 'text-sm p-2 rounded-lg text-gray-300 cursor-not-allowed'
+                    clase = base + 'text-gray-300 cursor-not-allowed'
                   }
                   if (seleccionado) {
-                    clase = 'text-sm p-2 rounded-lg bg-[#505FB6] text-white'
+                    clase = base + 'bg-[#505FB6] text-white'
                   }
 
                   return (
@@ -705,22 +728,22 @@ const Reservas = () => {
             {diaSeleccionado && (
               <div className="mt-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                  Horarios disponibles — {fechaAtexto(diaSeleccionado)}
+                  Horarios — {diaSeleccionado.toLocaleDateString('es-CL')}
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {horariosDisponibles.map((hora) => {
                     const ocupada = horasOcupadas.includes(hora)
                     const pasada = horaYaPaso(diaSeleccionado, hora)
                     const bloqueada = ocupada || pasada
                     const seleccionada = horaSeleccionadaValida === hora
 
-                    let clase = 'text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:border-[#505FB6]'
+                    let clase = 'w-full text-xs px-2 py-2 rounded-lg border border-gray-200 text-gray-600 hover:border-[#505FB6]'
                     if (ocupada) {
-                      clase = 'text-xs px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-red-300 line-through cursor-not-allowed'
+                      clase = 'w-full text-xs px-2 py-2 rounded-lg border border-red-200 bg-red-50 text-red-300 line-through cursor-not-allowed'
                     } else if (pasada) {
-                      clase = 'text-xs px-3 py-2 rounded-lg border border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                      clase = 'w-full text-xs px-2 py-2 rounded-lg border border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
                     } else if (seleccionada) {
-                      clase = 'text-xs px-3 py-2 rounded-lg border border-[#505FB6] bg-[#505FB6] text-white'
+                      clase = 'w-full text-xs px-2 py-2 rounded-lg border border-[#505FB6] bg-[#505FB6] text-white'
                     }
 
                     return (
@@ -742,10 +765,7 @@ const Reservas = () => {
 
           {!hayToken && diaSeleccionado && horaSeleccionadaValida && (
             <div className="border-t border-gray-100 pt-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Por favor, leer</p>
-              <div className="grid grid-cols-2 gap-3">
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-gray-400">
                 Te enviaremos la confirmación al correo y WhatsApp. ¿Ya tienes cuenta?{' '}
                 <button type="button" onClick={() => guardarSeleccionYNavegar('/login')} className="text-[#505FB6] underline">
                   Inicia sesión
@@ -758,8 +778,14 @@ const Reservas = () => {
             </div>
           )}
 
+          {errorFormulario && (
+            <p role="alert" className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {errorFormulario}
+            </p>
+          )}
+
           <div className="flex justify-end mt-2">
-            <button type="submit" disabled={enviando} className="px-4 py-2 rounded-lg bg-[#505FB6] text-white text-sm font-medium hover:bg-[#3f4d9e] disabled:opacity-50">
+            <button type="submit" disabled={enviando} className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#505FB6] text-white text-sm font-medium hover:bg-[#3f4d9e] disabled:opacity-50">
               {textoBotonReservar}
             </button>
           </div>
