@@ -21,6 +21,8 @@ const camposBloqueados = ['nombre', 'apellido', 'rut', 'fecha_nacimiento']
 const TEXTO_AUTORIZACION =
     'Autorizo que mis datos de salud, como enfermedades y medicamentos, sean utilizados con fines médicos.'
 
+const inputClase = 'w-full min-w-0 border rounded-lg p-2 text-sm'
+
 function obtenerValorOTextoVacio(valor) {
     if (valor) {
         return valor
@@ -58,10 +60,11 @@ function armarFormDesdeUsuario(usuario) {
 }
 
 function obtenerClaseColumna(campo) {
+    // min-w-0 evita que el contenido largo (ej. un correo) empuje el ancho de la tarjeta
     if (campo.tipo === 'textarea') {
-        return 'col-span-2'
+        return 'min-w-0 sm:col-span-2'
     }
-    return ''
+    return 'min-w-0'
 }
 
 const Perfil = () => {
@@ -172,7 +175,7 @@ const Perfil = () => {
 
     const renderizarVistaPerfil = () => {
         return (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                 {campos.map((campo) => {
                     let valor = usuario[campo.name]
                     if (campo.name === 'fecha_nacimiento') {
@@ -187,7 +190,7 @@ const Perfil = () => {
                     return (
                         <div key={campo.name} className={obtenerClaseColumna(campo)}>
                             <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{campo.label}</p>
-                            <p className="text-sm text-gray-800 whitespace-pre-wrap">{textoAMostrar}</p>
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{textoAMostrar}</p>
                         </div>
                     )
                 })}
@@ -208,7 +211,7 @@ const Perfil = () => {
                     name={campo.name}
                     value={valorMostrado}
                     disabled
-                    className="w-full border rounded-lg p-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                    className={inputClase + ' bg-gray-100 text-gray-500 cursor-not-allowed'}
                 />
             )
         }
@@ -220,7 +223,7 @@ const Perfil = () => {
                     value={form[campo.name]}
                     onChange={actualizarCampo}
                     placeholder="Sin enfermedades registradas"
-                    className="w-full border rounded-lg p-2 text-sm"
+                    className={inputClase}
                     rows={3}
                 />
             )
@@ -232,7 +235,7 @@ const Perfil = () => {
                 name={campo.name}
                 value={form[campo.name]}
                 onChange={actualizarCampo}
-                className="w-full border rounded-lg p-2 text-sm"
+                className={inputClase}
             />
         )
     }
@@ -245,7 +248,7 @@ const Perfil = () => {
     const renderizarFormularioEdicion = () => {
         return (
             <form onSubmit={guardarCambios} className="flex flex-col gap-5">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {campos.map((campo) => (
                         <div key={campo.name} className={obtenerClaseColumna(campo)}>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
@@ -255,7 +258,7 @@ const Perfil = () => {
                         </div>
                     ))}
 
-                    <div>
+                    <div className="min-w-0">
                         <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                             Nueva contraseña
                         </label>
@@ -264,7 +267,7 @@ const Perfil = () => {
                             value={nuevaPassword}
                             onChange={(evento) => setNuevaPassword(evento.target.value)}
                             placeholder="Cambio de contraseña"
-                            className="w-full border rounded-lg p-2 text-sm"
+                            className={inputClase}
                         />
                     </div>
                 </div>
@@ -285,7 +288,7 @@ const Perfil = () => {
                             (yaAutorizo ? 'cursor-not-allowed' : 'cursor-pointer')
                         }
                     />
-                    <span>
+                    <span className="min-w-0">
                         {TEXTO_AUTORIZACION}
                         {yaAutorizo && (
                             <span className="block text-xs text-gray-500 mt-1">
@@ -295,7 +298,7 @@ const Perfil = () => {
                     </span>
                 </label>
 
-                <div className="flex justify-end gap-3 mt-2">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-2">
                     <button
                         type="button"
                         onClick={cancelarEdicion}
@@ -322,10 +325,10 @@ const Perfil = () => {
     }
 
     return (
-        <div className="w-full flex justify-center items-start min-h-screen px-4 py-8">
-            <div className="max-w-3xl w-full">
+        <div className="w-full flex justify-center items-start min-h-screen px-2 sm:px-4 py-4 sm:py-8">
+            <div className="max-w-3xl w-full min-w-0">
                 {mostrarExito && (
-                    <div className="fixed bottom-4 right-4 flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 min-w-[300px]">
+                    <div className="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 sm:min-w-[300px]">
                     <span className="flex items-center justify-center w-5 h-5 bg-green-500 text-white rounded-full flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -340,7 +343,7 @@ const Perfil = () => {
                     </div>
                 )}
 
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">Mi perfil</h2>
 
                     {!modoEdicion && (
@@ -353,7 +356,7 @@ const Perfil = () => {
                     )}
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
                     {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
                     {contenidoPrincipal}
                 </div>
