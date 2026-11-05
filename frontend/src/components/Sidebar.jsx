@@ -110,7 +110,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 h-[100dvh] bg-[#04B6B6] ${paddingSidebar} flex flex-col transition-all duration-300 z-40 ${anchoSidebar}`}
+      className={`fixed top-0 left-0 h-[100lvh] bg-[#04B6B6] transition-all duration-300 z-40 ${anchoSidebar}`}
     >
       <button
         onClick={() => setColapsado(!colapsado)}
@@ -119,6 +119,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
         <ChevronLeft size={16} />
       </button>
 
+      <div className={`h-[100svh] flex flex-col ${paddingSidebar} transition-all duration-300`}>
       <h1
         className={`text-white font-bold mb-8 overflow-hidden transition-all duration-300 ${clasesTitulo}`}
       >
@@ -155,6 +156,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
         <LogOut size={18} />
         {!colapsado && <span>Cerrar sesión</span>}
       </button>
+      </div>
     </aside>
   )
 }
