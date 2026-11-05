@@ -25,7 +25,12 @@ const Sidebar = ({ colapsado, setColapsado }) => {
 
   let anchoSidebar = 'w-64 max-md:w-48'
   if (colapsado) {
-    anchoSidebar = 'w-20'
+    anchoSidebar = 'w-16'
+  }
+
+  let paddingSidebar = 'p-4'
+  if (colapsado) {
+    paddingSidebar = 'p-2'
   }
 
   let rotacionBoton = ''
@@ -38,9 +43,9 @@ const Sidebar = ({ colapsado, setColapsado }) => {
     clasesTitulo = 'text-center text-xs'
   }
 
-  let textoTitulo = `Bienvenid@, ${usuario.nombre || 'usuario'}`
+  let textoTitulo = `Bienvenid@, ${usuario?.nombre || 'usuario'}`
   if (colapsado) {
-    textoTitulo = usuario.nombre?.charAt(0).toUpperCase() || 'U'
+    textoTitulo = usuario?.nombre?.charAt(0).toUpperCase() || 'U'
   }
 
   let contenidoTitulo = textoTitulo
@@ -105,7 +110,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 h-screen bg-[#04B6B6] p-4 flex flex-col transition-all duration-300 z-40 ${anchoSidebar}`}
+      className={`fixed top-0 left-0 h-screen bg-[#04B6B6] ${paddingSidebar} flex flex-col transition-all duration-300 z-40 ${anchoSidebar}`}
     >
       <button
         onClick={() => setColapsado(!colapsado)}
