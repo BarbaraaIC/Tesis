@@ -110,7 +110,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 h-screen bg-[#04B6B6] ${paddingSidebar} flex flex-col transition-all duration-300 z-40 ${anchoSidebar}`}
+      className={`fixed top-0 left-0 h-[100dvh] bg-[#04B6B6] ${paddingSidebar} flex flex-col transition-all duration-300 z-40 ${anchoSidebar}`}
     >
       <button
         onClick={() => setColapsado(!colapsado)}
@@ -125,7 +125,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
         {contenidoTitulo}
       </h1>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto">
         {itemsMenu.map((item) => {
           if (!item.visible) {
             return null
@@ -149,7 +149,7 @@ const Sidebar = ({ colapsado, setColapsado }) => {
 
       <button
         onClick={handleLogout}
-        className={`mt-auto bg-red-400 text-white py-2 rounded-lg hover:bg-red-600 cursor-pointer flex items-center justify-center ${gapLogout}`}
+        className={`shrink-0 mt-2 bg-red-400 text-white py-2 rounded-lg hover:bg-red-600 cursor-pointer flex items-center justify-center ${gapLogout}`}
         title="Cerrar sesión"
       >
         <LogOut size={18} />
