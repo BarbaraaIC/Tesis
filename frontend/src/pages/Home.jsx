@@ -32,21 +32,25 @@ function Home() {
     }
 
     return (
-        <div>
-            <nav className="flex items-center justify-between px-6 md:px-12 py-4 bg-[#04B6B6] shadow-sm">
+        <div className="overflow-x-hidden w-full">
+            <nav className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 px-4 md:px-12 py-4 bg-[#04B6B6] shadow-sm">
                 <span className="text-white font-bold text-xl md:text-2xl">KinexCenter</span>
-                <ul className="flex items-center gap-4 md:gap-8">
-                    <li><a href="#inicio" className="text-sm md:text-base text-white hover:text-white transition-colors">Inicio</a></li>
-                    <li><a href="#tratamientos" className="text-sm md:text-base text-white hover:text-white transition-colors">Tratamientos</a></li>
-                    <li><a href="#contacto" className="text-sm md:text-base text-white hover:text-white transition-colors">Contacto</a></li>
-                    <li><Link to="/login" className="text-sm md:text-base text-white font-medium hover:text-purple-700 transition-colors">Iniciar sesión</Link></li>
+                <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 md:gap-8">
+                    <li><a href="#inicio" className="text-sm md:text-base text-white transition-colors">Inicio</a></li>
+                    <li><a href="#tratamientos" className="text-sm md:text-base text-white transition-colors">Tratamientos</a></li>
+                    <li><a href="#contacto" className="text-sm md:text-base text-white transition-colors">Contacto</a></li>
+                    <li>
+                        <Link to="/login" className="text-sm md:text-base text-white font-semibold underline underline-offset-4">
+                            Iniciar sesión
+                        </Link>
+                    </li>
                 </ul>
             </nav>
 
             <header className="relative bg-cover bg-center" style={{ backgroundImage: `url(${imagenPortada})` }}>
                 <div id="inicio" className="bg-black/45 flex flex-col items-center justify-center text-white px-4 py-20">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-2">KinexCenter</h1>
-                    <p className="text-base md:text-lg mb-6 opacity-90">Kinesiología y Bienestar Integral</p>
+                    <h1 className="text-4xl md:text-6xl font-bold mb-2 text-center">KinexCenter</h1>
+                    <p className="text-base md:text-lg mb-6 opacity-90 text-center">Kinesiología y Bienestar Integral</p>
                     <HomeReserva />
                 </div>
             </header>
@@ -60,7 +64,7 @@ function Home() {
                             Ofrecemos tratamientos personalizados, combinando salud, rehabilitación y cuidado estético.
                         </p>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 w-full">
                         <img src={imagenQuienesSomos} alt="Equipo" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
                     </div>
                 </div>
@@ -80,7 +84,7 @@ function Home() {
                                 ))}
                             </ul>
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 w-full">
                             <img src={imagenPorqueElegirnos} alt="Instalaciones" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
                         </div>
                     </div>
@@ -113,16 +117,16 @@ function Home() {
                                             transform: volteada ? 'rotateY(180deg)' : 'rotateY(0deg)',
                                         }}
                                     >
-                                        {/* Frente: título */}
+                                        {/* titulo */}
                                         <div
                                             className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white rounded-xl px-4 py-6 shadow-sm hover:shadow-md border border-gray-100 text-gray-800 font-semibold text-lg text-center"
                                             style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                                         >
                                             <span>{tratamiento.name}</span>
-                                            <span className="text-xs font-normal text-gray-400">Toca para saber  más</span>
+                                            <span className="text-xs font-normal text-gray-400">Toca para saber más</span>
                                         </div>
 
-                                        {/* Reverso: título + descripción */}
+                                        {/* Reverso*/}
                                         <div
                                             className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#04B6B6] text-white rounded-xl px-5 py-6 shadow-md text-center"
                                             style={{

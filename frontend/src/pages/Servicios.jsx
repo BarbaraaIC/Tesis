@@ -183,37 +183,7 @@ const crearNuevoTratamiento = async (evento) => {
       setGuardandoTratamiento(false)
     }
 }
-//eliminar servicio
- /* const handleEliminarServicio = async (id_servicio) => {
-  if (!id_servicio) return
 
-  const servicio = servicios.find((servicioActual) => {
-    const idActual = servicioActual.id_servicio ?? servicioActual.id
-    return idActual === id_servicio
-  })
-
-  const nombreServicio = servicio?.tipo_servicio || servicio?.nombre || 'este servicio'
-  const confirmado = window.confirm(`¿Deseas eliminar "${nombreServicio}"?`)
-
-  if (!confirmado) return
-
-  try {
-    await eliminarServicio(id_servicio) 
-    setServicios((serviciosAnteriores) =>
-      serviciosAnteriores.filter((servicioActual) => {
-        const idActual = servicioActual.id_servicio ?? servicioActual.id
-        return idActual !== id_servicio
-      }),
-    )
-    setMensajeAlerta('Servicio eliminado con éxito')
-    setMostrarAlerta(true)
-  } catch (errorCapturado) {
-    setError(errorCapturado.message)
-  }
-}
-*/
-
-// activar / desactivar tratamiento
 const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
   const tratamiento = (tratamientosPorServicio[idServicio] || []).find(
     (t) => t.cod_tratamiento === codTratamiento,
