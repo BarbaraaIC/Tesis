@@ -8,6 +8,15 @@ async function main() {
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   const passwordHash = await encryptPassword(adminPassword);
 
+  const roles = ['paciente', 'profesional', 'administrador'];
+  for (const nombre of roles) {
+    await prisma.rol.upsert({
+      where: { nombre },
+      update: {},
+      create: { nombre },
+    });
+  }
+
   await prisma.usuario.upsert({
     where: { correo: adminEmail },
     update: {},
@@ -19,14 +28,14 @@ async function main() {
       telefono: '+56912345678',
       correo: adminEmail,
       password: passwordHash,
-      rol: 'administrador',
+      rol: { connect: { nombre: 'administrador' } },
       ocupacion: 'Administrador',
       fecha_nacimiento: new Date('2000-01-01'),
       autoriza_datos_salud: false,
     },
   });
 
-  console.log('Admin user seeded successfully');
+  console.log('Roles y usuario Admin creado correctamente');
 }
 
 main()

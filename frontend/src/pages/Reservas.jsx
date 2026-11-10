@@ -161,6 +161,8 @@ const Reservas = () => {
   const esPaciente = rolActual === 'paciente'
   const esProfesional = rolActual === 'profesional'
 
+  const haySesion = !!localStorage.getItem('token') && !!usuario
+
   const [pacientes, setPacientes] = useState([])
   const [profesionales, setProfesionales] = useState([])
   const [servicios, setServicios] = useState([])
@@ -203,7 +205,11 @@ const Reservas = () => {
     const cargarPacientesYProfesionales = async () => {
       const token = localStorage.getItem('token')
 
-      if (!token) {
+      if (esProfesional && usuario) {
+        setFormulario((formularioAnterior) => {
+          return { ...formularioAnterior, id_profesional: usuario.id_usuario }
+        })
+      } else {
         try {
           const respuestaProfesionales = await getProfesionales()
           setProfesionales(respuestaProfesionales.data || [])
@@ -211,32 +217,34 @@ const Reservas = () => {
           console.error('No se pudieron cargar los profesionales', err)
           setProfesionales([])
         }
+      }
+
+      if (!token || !usuario) {
         return
       }
 
-      const respuesta = await getUsuarios(token)
-      const listaCompletaDeUsuarios = respuesta.data
-
-      if (usuario && esPaciente) {
+      if (esPaciente) {
         setFormulario((formularioAnterior) => {
           return { ...formularioAnterior, id_usuario: usuario.id_usuario }
         })
-      } else {
+        return
+      }
+
+      try {
+        const respuesta = await getUsuarios(token)
+        const listaCompletaDeUsuarios = respuesta.data || []
+
         const soloPacientes = listaCompletaDeUsuarios.filter((usuarioActual) => {
           return obtenerRolNormalizado(usuarioActual) === 'paciente'
         })
         setPacientes(soloPacientes)
-      }
+      } catch (err) {
+        console.error('No se pudieron cargar los pacientes', err)
+        setPacientes([])
 
-      if (usuario && esProfesional) {
-        setFormulario((formularioAnterior) => {
-          return { ...formularioAnterior, id_profesional: usuario.id_usuario }
-        })
-      } else {
-        const soloProfesionales = listaCompletaDeUsuarios.filter((usuarioActual) => {
-          return obtenerRolNormalizado(usuarioActual) === 'profesional'
-        })
-        setProfesionales(soloProfesionales)
+        if (err.response && err.response.status === 401) {
+          localStorage.removeItem('token')
+        }
       }
     }
 
@@ -248,6 +256,7 @@ const Reservas = () => {
 
         await cargarPacientesYProfesionales()
       } catch (error) {
+        console.error('Error al cargar la página de reservas', error)
         setError(error.message)
       } finally {
         setCargandoPagina(false)
@@ -312,32 +321,37 @@ const Reservas = () => {
     }
 
     const restaurarSeleccion = async () => {
-      try {
-        const respuesta = await getTratamientosPorServicio(pendiente.id_servicio)
-        let listaDeTratamientos = respuesta.data
-        if (!Array.isArray(respuesta.data)) {
-          listaDeTratamientos = [respuesta.data]
+      // Solo se piden tratamientos si el visitante ya había elegido un servicio
+      if (pendiente.id_servicio) {
+        try {
+          const respuesta = await getTratamientosPorServicio(pendiente.id_servicio)
+          let listaDeTratamientos = respuesta.data
+          if (!Array.isArray(respuesta.data)) {
+            listaDeTratamientos = [respuesta.data]
+          }
+          setTratamientos(listaDeTratamientos)
+        } catch (error) {
+          console.error("No se logro cargar los tratamientos de la reserva pendiente", error)
+          setTratamientos([])
         }
-        setTratamientos(listaDeTratamientos)
-      } catch (error) {
-        console.error("No se logro cargar los tratamientos de la reserva pendiente", error)
-        setTratamientos([])
       }
 
       setFormulario((formularioAnterior) => {
         return {
           ...formularioAnterior,
-          id_profesional: formularioAnterior.id_profesional || pendiente.id_profesional,
-          id_servicio: pendiente.id_servicio,
-          cod_tratamiento: pendiente.cod_tratamiento,
+          id_profesional: formularioAnterior.id_profesional || pendiente.id_profesional || '',
+          id_servicio: pendiente.id_servicio || '',
+          cod_tratamiento: pendiente.cod_tratamiento || '',
         }
       })
 
-      const diaPendiente = new Date(pendiente.dia + 'T00:00:00')
-      if (!yaPaso(diaPendiente)) {
-        setDiaSeleccionado(diaPendiente)
-        setMesVisible(new Date(diaPendiente.getFullYear(), diaPendiente.getMonth(), 1))
-        setHoraSeleccionada(pendiente.hora)
+      if (pendiente.dia) {
+        const diaPendiente = new Date(pendiente.dia + 'T00:00:00')
+        if (!yaPaso(diaPendiente)) {
+          setDiaSeleccionado(diaPendiente)
+          setMesVisible(new Date(diaPendiente.getFullYear(), diaPendiente.getMonth(), 1))
+          setHoraSeleccionada(pendiente.hora || null)
+        }
       }
 
       setSeleccionRestaurada(true)
@@ -447,7 +461,6 @@ const Reservas = () => {
   }
 
   const guardarSeleccionYNavegar = (ruta) => {
-    // Solo guardamos lo que exista: así "Inicia sesión" / "regístrate" funcionan siempre
     sessionStorage.setItem('pendingReserva', JSON.stringify({
       id_profesional: formulario.id_profesional,
       id_servicio: formulario.id_servicio,
@@ -462,7 +475,6 @@ const Reservas = () => {
     evento.preventDefault()
     setErrorFormulario('')
 
-    // Validación manual (el form tiene noValidate para que el navegador no bloquee el envío en silencio)
     if (!formulario.id_profesional) {
       setErrorFormulario("Selecciona un profesional.")
       return
@@ -483,9 +495,7 @@ const Reservas = () => {
       return
     }
 
-    const token = localStorage.getItem('token')
-
-    if (!token) {
+    if (!haySesion) {
       guardarSeleccionYNavegar('/login')
       return
     }
@@ -495,7 +505,6 @@ const Reservas = () => {
       return
     }
 
-    //tratamiento elegido sea activo
     const tratamientoElegido = tratamientos.find((t) => {
       return String(t.cod_tratamiento) === String(formulario.cod_tratamiento)
     })
@@ -562,13 +571,15 @@ const Reservas = () => {
   }
 
   if (error) {
-    return <p className="text-red-500">{error}</p>
+    return (
+      <div role="alert" className="w-full max-w-4xl mx-auto bg-red-50 border border-red-100 text-red-700 text-sm rounded-lg px-4 py-3">
+        No pudimos cargar la información para reservar. Recarga la página o inténtalo nuevamente en unos minutos.
+      </div>
+    )
   }
 
-  const hayToken = !!localStorage.getItem('token')
-
   let claseContenedorSelectorPersonas = 'grid grid-cols-1 sm:grid-cols-2 gap-4'
-  if (esPaciente || esProfesional || !hayToken) {
+  if (esPaciente || esProfesional || !haySesion) {
     claseContenedorSelectorPersonas = 'grid grid-cols-1 gap-4'
   }
 
@@ -580,7 +591,7 @@ const Reservas = () => {
   let textoBotonReservar = 'Reservar'
   if (enviando) {
     textoBotonReservar = 'Reservando'
-  } else if (!hayToken) {
+  } else if (!haySesion) {
     textoBotonReservar = 'Inicia Sesión para reservar'
   }
 
@@ -611,7 +622,7 @@ const Reservas = () => {
 
         <form onSubmit={reservar} noValidate className="flex flex-col gap-5">
           <div className={claseContenedorSelectorPersonas}>
-            {!esPaciente && hayToken && (
+            {!esPaciente && haySesion && (
               <div className="min-w-0">
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Paciente</label>
                 <select name="id_usuario" value={formulario.id_usuario} onChange={actualizarCampo} className={claseSelect}>
@@ -670,7 +681,7 @@ const Reservas = () => {
             </div>
           </div>
 
-          {!esPaciente && hayToken && (
+          {!esPaciente && haySesion && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Observaciones</label>
               <textarea name="observaciones" value={formulario.observaciones} onChange={actualizarCampo} placeholder="Opcional" className="w-full min-w-0 border rounded-lg p-2 text-sm text-gray-800 bg-white" />
@@ -763,7 +774,7 @@ const Reservas = () => {
             )}
           </div>
 
-          {!hayToken && diaSeleccionado && horaSeleccionadaValida && (
+          {!haySesion && diaSeleccionado && horaSeleccionadaValida && (
             <div className="border-t border-gray-100 pt-4">
               <p className="text-xs text-gray-400">
                 Te enviaremos la confirmación al correo y WhatsApp. ¿Ya tienes cuenta?{' '}

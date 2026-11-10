@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, Fragment } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getServicios, crearServicio } from '../services/serviciosServices.jsx'
-import { getTratamientosPorServicio, crearTratamiento, cambiarEstadoTratamiento} from '../services/tratamientosServices.jsx'
+import { getTratamientosPorServicio, crearTratamiento, cambiarEstadoTratamiento } from '../services/tratamientosServices.jsx'
 
 const TIPOS_SERVICIO = [
   'Rehabilitación musculoesquelética',
@@ -24,8 +24,15 @@ const DESCRIPCIONES_TRATAMIENTO = [
   'Rejuvenecimiento facial',
 ]
 
+
+const OPCION_OTRO = '__otro__'
+
 const Servicios = () => {
   const { rol } = useAuth()
+
+  // Solo administrador y profesional tienen acceso
+  const rolNormalizado = rol ? rol.toLowerCase().trim() : ''
+  const tieneAcceso = rolNormalizado === 'administrador' || rolNormalizado === 'profesional'
 
   const [servicios, setServicios] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -42,6 +49,7 @@ const Servicios = () => {
     tipo_servicio: '',
     descripcion: '',
   })
+  const [tipoPersonalizado, setTipoPersonalizado] = useState('')
   const [errorModal, setErrorModal] = useState('')
   const [guardando, setGuardando] = useState(false)
 
@@ -51,6 +59,7 @@ const Servicios = () => {
     descripcion: '',
     costo: '',
   })
+  const [descripcionPersonalizada, setDescripcionPersonalizada] = useState('')
   const [errorModalTratamiento, setErrorModalTratamiento] = useState('')
   const [guardandoTratamiento, setGuardandoTratamiento] = useState(false)
 
@@ -68,26 +77,28 @@ const Servicios = () => {
     }
   }, [])
 
-useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    cargarServicios()
-}, [cargarServicios])
+  useEffect(() => {
+    if (tieneAcceso) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      cargarServicios()
+    }
+  }, [cargarServicios, tieneAcceso])
 
-useEffect(() => {
+  useEffect(() => {
     if (mostrarAlerta) {
       const timer = setTimeout(() => setMostrarAlerta(false), 3000)
       return () => clearTimeout(timer)
     }
-}, [mostrarAlerta])
+  }, [mostrarAlerta])
 
-const cargarTratamientosDeServicio = useCallback(async (idServicio) => {
+  const cargarTratamientosDeServicio = useCallback(async (idServicio) => {
     setCargandoTratamientos(true)
     try {
       const respuesta = await getTratamientosPorServicio(idServicio)
 
       let tratamientosNormalizados = respuesta.data
-        if (!Array.isArray(respuesta.data)) {
-          tratamientosNormalizados = [respuesta.data]
+      if (!Array.isArray(respuesta.data)) {
+        tratamientosNormalizados = [respuesta.data]
       }
 
       setTratamientosPorServicio((tratamientosAnteriores) => {
@@ -100,9 +111,9 @@ const cargarTratamientosDeServicio = useCallback(async (idServicio) => {
     } finally {
       setCargandoTratamientos(false)
     }
-}, [])
+  }, [])
 
-const alternarExpansionServicio = (idServicio) => {
+  const alternarExpansionServicio = (idServicio) => {
     if (servicioExpandido === idServicio) {
       setServicioExpandido(null)
       return
@@ -112,56 +123,101 @@ const alternarExpansionServicio = (idServicio) => {
     if (!tratamientosPorServicio[idServicio]) {
       cargarTratamientosDeServicio(idServicio)
     }
-}
+  }
 
-const actualizarCampoServicio = (evento) => {
+  const actualizarCampoServicio = (evento) => {
     const nombreCampo = evento.target.name
     const valorCampo = evento.target.value
     setNuevoServicio((servicioAnterior) => {
       return { ...servicioAnterior, [nombreCampo]: valorCampo }
     })
-}
+  }
 
-const crearNuevoServicio = async (evento) => {
+  const cerrarModalServicio = () => {
+    setMostrarModal(false)
+    setErrorModal('')
+    setTipoPersonalizado('')
+    setNuevoServicio({ tipo_servicio: '', descripcion: '' })
+  }
+
+  const crearNuevoServicio = async (evento) => {
     evento.preventDefault()
     setErrorModal('')
+
+    if (!tieneAcceso) {
+      setErrorModal('No tienes permisos para crear servicios.')
+      return
+    }
+
+    let tipoFinal = nuevoServicio.tipo_servicio
+    if (tipoFinal === OPCION_OTRO) {
+      tipoFinal = tipoPersonalizado.trim()
+    }
+
+    if (!tipoFinal) {
+      setErrorModal('Debes indicar el tipo de servicio.')
+      return
+    }
+
     setGuardando(true)
 
     try {
-      await crearServicio(nuevoServicio)
-        setMostrarModal(false)
-        setNuevoServicio({ tipo_servicio: '', descripcion: '' })
+      await crearServicio({ ...nuevoServicio, tipo_servicio: tipoFinal })
+      cerrarModalServicio()
       await cargarServicios()
-        setMensajeAlerta('Servicio creado con éxito')
-        setMostrarAlerta(true)
+      setMensajeAlerta('Servicio creado con éxito')
+      setMostrarAlerta(true)
     } catch (errorCapturado) {
       setErrorModal(errorCapturado.message)
     } finally {
       setGuardando(false)
     }
-}
+  }
 
-const abrirModalTratamiento = (idServicio) => {
+  const abrirModalTratamiento = (idServicio) => {
     setServicioSeleccionado(idServicio)
     setNuevoTratamiento({ descripcion: '', costo: '' })
+    setDescripcionPersonalizada('')
     setErrorModalTratamiento('')
     setMostrarModalTratamiento(true)
-}
+  }
 
-const actualizarCampoTratamiento = (evento) => {
+  const cerrarModalTratamiento = () => {
+    setMostrarModalTratamiento(false)
+    setErrorModalTratamiento('')
+    setDescripcionPersonalizada('')
+    setNuevoTratamiento({ descripcion: '', costo: '' })
+  }
+
+  const actualizarCampoTratamiento = (evento) => {
     const nombreCampo = evento.target.name
     const valorCampo = evento.target.value
     setNuevoTratamiento((tratamientoAnterior) => {
       return { ...tratamientoAnterior, [nombreCampo]: valorCampo }
     })
-}
+  }
 
-const crearNuevoTratamiento = async (evento) => {
+  const crearNuevoTratamiento = async (evento) => {
     evento.preventDefault()
     setErrorModalTratamiento('')
 
+    if (!tieneAcceso) {
+      setErrorModalTratamiento('No tienes permisos para crear tratamientos.')
+      return
+    }
+
     if (!servicioSeleccionado) {
       setErrorModalTratamiento('Selecciona a qué servicio pertenece el tratamiento.')
+      return
+    }
+
+    let descripcionFinal = nuevoTratamiento.descripcion
+    if (descripcionFinal === OPCION_OTRO) {
+      descripcionFinal = descripcionPersonalizada.trim()
+    }
+
+    if (!descripcionFinal) {
+      setErrorModalTratamiento('Debes indicar la descripción del tratamiento.')
       return
     }
 
@@ -169,51 +225,58 @@ const crearNuevoTratamiento = async (evento) => {
 
     try {
       await crearTratamiento({
-        descripcion: nuevoTratamiento.descripcion,
+        descripcion: descripcionFinal,
         costo: Number(nuevoTratamiento.costo),
         id_servicio: servicioSeleccionado,
       })
-      setMostrarModalTratamiento(false)
-        await cargarTratamientosDeServicio(servicioSeleccionado)
-        setMensajeAlerta('Tratamiento creado con éxito')
-        setMostrarAlerta(true)
+      cerrarModalTratamiento()
+      await cargarTratamientosDeServicio(servicioSeleccionado)
+      setMensajeAlerta('Tratamiento creado con éxito')
+      setMostrarAlerta(true)
     } catch (errorCapturado) {
       setErrorModalTratamiento(errorCapturado.message)
     } finally {
       setGuardandoTratamiento(false)
     }
-}
-
-const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
-  const tratamiento = (tratamientosPorServicio[idServicio] || []).find(
-    (t) => t.cod_tratamiento === codTratamiento,
-  )
-  const accion = tratamiento?.activo ? 'desactivar' : 'activar'
-
-  if (!window.confirm(`¿Deseas ${accion} este tratamiento?`)) return
-
-  try {
-    const respuesta = await cambiarEstadoTratamiento(codTratamiento)
-    const nuevoEstado = respuesta?.data?.activo ?? !tratamiento?.activo
-
-    setTratamientosPorServicio((tratamientosAnteriores) => ({
-      ...tratamientosAnteriores,
-      [idServicio]: (tratamientosAnteriores[idServicio] || []).map(
-        (tratamientoActual) =>
-          tratamientoActual.cod_tratamiento === codTratamiento
-            ? { ...tratamientoActual, activo: nuevoEstado }
-            : tratamientoActual,
-      ),
-    }))
-
-    setMensajeAlerta(
-      nuevoEstado ? 'Tratamiento activado con éxito' : 'Tratamiento desactivado con éxito',
-    )
-    setMostrarAlerta(true)
-  } catch (errorCapturado) {
-    setError(errorCapturado.message)
   }
-}
+
+  const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
+    if (!tieneAcceso) return
+
+    const tratamiento = (tratamientosPorServicio[idServicio] || []).find(
+      (t) => t.cod_tratamiento === codTratamiento,
+    )
+    const accion = tratamiento?.activo ? 'desactivar' : 'activar'
+
+    if (!window.confirm(`¿Deseas ${accion} este tratamiento?`)) return
+
+    try {
+      const respuesta = await cambiarEstadoTratamiento(codTratamiento)
+      const nuevoEstado = respuesta?.data?.activo ?? !tratamiento?.activo
+
+      setTratamientosPorServicio((tratamientosAnteriores) => ({
+        ...tratamientosAnteriores,
+        [idServicio]: (tratamientosAnteriores[idServicio] || []).map(
+          (tratamientoActual) =>
+            tratamientoActual.cod_tratamiento === codTratamiento
+              ? { ...tratamientoActual, activo: nuevoEstado }
+              : tratamientoActual,
+        ),
+      }))
+
+      setMensajeAlerta(
+        nuevoEstado ? 'Tratamiento activado con éxito' : 'Tratamiento desactivado con éxito',
+      )
+      setMostrarAlerta(true)
+    } catch (errorCapturado) {
+      setError(errorCapturado.message)
+    }
+  }
+
+  // Todos los hooks están declarados arriba; desde aquí pueden ir los return condicionales
+  if (!tieneAcceso) {
+    return <p>No tienes permisos para ver esta sección.</p>
+  }
 
   if (cargando) {
     return <p>Cargando servicios</p>
@@ -221,16 +284,6 @@ const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
 
   if (error) {
     return <p className="text-red-500">{error}</p>
-  }
-
-  let rolNormalizado = ''
-  if (rol) {
-    rolNormalizado = rol.toLowerCase().trim()
-  }
-  const tieneAcceso = rolNormalizado === 'administrador' || rolNormalizado === 'profesional'
-
-  if (!tieneAcceso) {
-    return <p>No tienes permisos para ver esta sección.</p>
   }
 
   const textoBusqueda = busqueda.toLowerCase()
@@ -272,12 +325,14 @@ const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
 
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Servicios Clínicos</h2>
-        <button
-          onClick={() => setMostrarModal(true)}
-          className="bg-[#505FB6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3f4d9e] transition-colors"
-        >
-          + Crear servicio
-        </button>
+        {tieneAcceso && (
+          <button
+            onClick={() => setMostrarModal(true)}
+            className="bg-[#505FB6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3f4d9e] transition-colors"
+          >
+            + Crear servicio
+          </button>
+        )}
       </div>
 
       <div className="relative mb-6 max-w-sm">
@@ -306,7 +361,6 @@ const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
               <th className="p-3 font-semibold w-8"></th>
               <th className="p-3 font-semibold">Nombre de Servicio</th>
               <th className="p-3 font-semibold">Descripción</th>
-              <th className="p-3 font-semibold w-32 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -344,23 +398,12 @@ const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
                     </td>
                     <td className="p-3 text-gray-600">{servicioActual.tipo_servicio}</td>
                     <td className="p-3 text-gray-600">{servicioActual.descripcion}</td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={(evento) => {
-                          evento.stopPropagation()
-                          handleCambiarEstadoTratamiento(servicioActual.id_servicio)
-                        }}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
                   </tr>
 
                   {estaExpandido && (
                     <tr className="bg-gray-50/70 border-t border-gray-100">
                       <td></td>
-                      <td colSpan={3} className="p-4">
+                      <td colSpan={2} className="p-4">
                         <div className="flex items-center justify-end mb-3">
                           <button
                             onClick={(evento) => {
@@ -453,7 +496,20 @@ const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
                       {tipoServicioActual}
                     </option>
                   ))}
+                  <option value={OPCION_OTRO}>Otro (escribir manualmente)</option>
                 </select>
+
+                {nuevoServicio.tipo_servicio === OPCION_OTRO && (
+                  <input
+                    type="text"
+                    value={tipoPersonalizado}
+                    onChange={(evento) => setTipoPersonalizado(evento.target.value)}
+                    placeholder="Escribe el nombre del servicio"
+                    required
+                    maxLength={100}
+                    className="w-full border rounded-lg p-2 mt-2"
+                  />
+                )}
               </div>
               <textarea
                 name="descripcion"
@@ -464,7 +520,7 @@ const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
                 className="border rounded-lg p-2"
               />
               <div className="flex justify-end gap-2 mt-2">
-                <button type="button" onClick={() => setMostrarModal(false)} className="px-4 py-2 rounded-lg border">
+                <button type="button" onClick={cerrarModalServicio} className="px-4 py-2 rounded-lg border">
                   Cancelar
                 </button>
                 <button
@@ -525,7 +581,20 @@ const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
                       {descripcionActual}
                     </option>
                   ))}
+                  <option value={OPCION_OTRO}>Otro (escribir manualmente)</option>
                 </select>
+
+                {nuevoTratamiento.descripcion === OPCION_OTRO && (
+                  <input
+                    type="text"
+                    value={descripcionPersonalizada}
+                    onChange={(evento) => setDescripcionPersonalizada(evento.target.value)}
+                    placeholder="Escribe la descripción del tratamiento"
+                    required
+                    maxLength={100}
+                    className="w-full border rounded-lg p-2 mt-2"
+                  />
+                )}
               </div>
               <input
                 type="number"
@@ -540,7 +609,7 @@ const handleCambiarEstadoTratamiento = async (idServicio, codTratamiento) => {
               <div className="flex justify-end gap-2 mt-2">
                 <button
                   type="button"
-                  onClick={() => setMostrarModalTratamiento(false)}
+                  onClick={cerrarModalTratamiento}
                   className="px-4 py-2 rounded-lg border"
                 >
                   Cancelar
