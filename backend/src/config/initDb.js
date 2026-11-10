@@ -1,7 +1,7 @@
 "use strict";
 
 import { encryptPassword } from "../handlers/bcrypt.helper.js";
-import { prisma } from "../config/configDb.js"; // Importamos el cliente de Prisma que creamos antes
+import { prisma } from "../config/configDb.js";
 
 export async function createusers(){
     try {
@@ -16,7 +16,7 @@ export async function createusers(){
                 nombre: "Administrador",
                 apellido: "Sistema",
                 email: "admin@gmail.com",
-                rol: "Administrador",
+                rrol: { connect: { nombre: 'administrador' } },
                 telefono: "+56912345678",
                 password: await encryptPassword("admin123"),
             },

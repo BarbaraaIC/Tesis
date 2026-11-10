@@ -17,7 +17,8 @@ model Usuario {
   telefono                 String
   correo                   String                @unique
   password                 String
-  rol                      String                @default("paciente")
+  id_rol                   Int
+  rol                      Rol                   @relation(fields: [id_rol], references: [id_rol])
   enfermedades             String?
   medicamentos             String?
   ocupacion                String
@@ -26,6 +27,14 @@ model Usuario {
   tratamientosAsignadosPor TratamientoAsignado[] @relation("ProfesionalTratamientos")
 
   @@map("usuarios")
+}
+
+model Rol {
+  id_rol   Int       @id @default(autoincrement())
+  nombre   String    @unique   // paciente, profesional, administrador
+  usuarios Usuario[]
+
+  @@map("roles")
 }
 
 model Servicio {
