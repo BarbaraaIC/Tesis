@@ -8,16 +8,19 @@ import { findUserByEmail } from "./user.service.js";
 
 
 const generarSesion = (usuario) => {
+    const nombreRol = usuario.rol?.nombre || "paciente";
+
     const payload = {
         sub: usuario.rut,
         correo: usuario.correo,
-        rol: usuario.rol || "paciente",
+        rol: nombreRol,
     };
 
     const secretKey = process.env.JWT_SECRET || "clave_secreta_por_defecto_tesis";
     const token = jwt.sign(payload, secretKey, { expiresIn: "1h" });
 
-    const { password, ...user } = usuario;
+    const { password, rol, ...resto } = usuario;
+    const user = { ...resto, rol: nombreRol };
 
     return { user, token };
 };
@@ -67,8 +70,9 @@ export const registerUserConGoogle = async ({
             fecha_nacimiento: new Date(fecha_nacimiento),
             autoriza_datos_salud: false,
             password: passwordAleatoria,
-            rol: "paciente",
+            rol: { connect: { nombre: "paciente" } },
         },
+        include: { rol: true },
     });
 
     return generarSesion(usuario);

@@ -100,8 +100,7 @@ function Register (){
         if (direccion.trim().length < 5 || !direccion_val.test(direccion.trim())) {
             return 'La dirección debe tener al menos 5 caracteres y solo letras, números, espacios, puntos, comas, # o guiones.'
         }
-        // Con Google no hay contraseña
-        if (!googleCredential && !password_val.test(password)) {
+        if (!password_val.test(password)) {
             return 'La contraseña debe tener entre 8 y 30 caracteres'
         }
         return ''
@@ -209,7 +208,9 @@ function Register (){
             enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
             medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
 
-            ...(googleCredential ? { credential: googleCredential } : { correo, password }),
+            ...(googleCredential
+                ? { credential: googleCredential, password }
+                : { correo, password }),
         }
 
         setEnviando(true)
@@ -365,20 +366,18 @@ return (
                         />
                 </div>
 
-                {!googleCredential && (
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
-                            />
-                    </div>
-                )}
+                <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
+                        />
+                </div>
 
-                <div className={`flex gap-3 ${googleCredential ? 'mt-6' : ''}`}>
+                <div className="flex gap-3">
                     <button type="button" onClick={() => { setError(''); setStep(1) }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors cursor-pointer">
                         Anterior
                     </button>

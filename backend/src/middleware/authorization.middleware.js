@@ -2,42 +2,51 @@
 import { prisma } from "../config/configDb.js";
 import { handleErrorClient, handleErrorServer } from "../handlers/responseHandlers.js";
 
+const buscarUsuarioConRol = (correo) =>
+    prisma.usuario.findUnique({
+        where: { correo },
+        select: {
+            id_usuario: true,
+            rol: { select: { nombre: true } },
+        },
+    });
+
 export async function isAdmin(req, res, next) {
     try {
-        if (!req.usuario.correo) {
+        if (!req.usuario?.correo) {
             return handleErrorClient(res, 401, "Usuario no autenticado.");
         }
 
-        const userFound = await prisma.usuario.findUnique({
-            where: { correo: req.usuario.correo },
-        });
+        const userFound = await buscarUsuarioConRol(req.usuario.correo);
 
-        if (!userFound)
+        if (!userFound) {
             return handleErrorClient(res, 404, "Usuario no encontrado.");
+        }
 
-        if (userFound.rol !== "administrador") {
+        if (userFound.rol.nombre !== "administrador") {
             return handleErrorClient(res, 401, "Se requiere rol de Administrador para realizar esta acción.");
         }
 
         next();
     } catch (error) {
-            return handleErrorServer(res, 500, "Error interno del servidor.", error.message);
+        return handleErrorServer(res, 500, "Error interno del servidor.", error.message);
     }
 }
 
 export async function isAdminOrProfesional(req, res, next) {
     try {
-        if (!req.usuario.correo) {
+        if (!req.usuario?.correo) {
             return handleErrorClient(res, 401, "Usuario no autenticado.");
         }
 
-        const userFound = await prisma.usuario.findUnique({
-            where: { correo: req.usuario.correo },
-        });
+        const userFound = await buscarUsuarioConRol(req.usuario.correo);
 
-        if (!userFound) return handleErrorClient(res, 404, "Usuario no encontrado");
+        if (!userFound) {
+            return handleErrorClient(res, 404, "Usuario no encontrado");
+        }
 
-        if (userFound.rol !== "administrador" && userFound.rol !== "profesional") {
+        const nombreRol = userFound.rol.nombre;
+        if (nombreRol !== "administrador" && nombreRol !== "profesional") {
             return handleErrorClient(res, 401, "Se requiere rol de administrador o profesional para realizar esta acción.");
         }
 
@@ -49,22 +58,22 @@ export async function isAdminOrProfesional(req, res, next) {
 
 export async function isProfesional(req, res, next) {
     try {
-        if (!req.usuario.correo) {
+        if (!req.usuario?.correo) {
             return handleErrorClient(res, 401, "Usuario no autenticado.");
         }
 
-        const usuarioBusqueda = await prisma.usuario.findUnique({
-            where: { correo: req.usuario.correo },
-        });
+        const userFound = await buscarUsuarioConRol(req.usuario.correo);
 
-        if (!usuarioBusqueda) return handleErrorClient(res, 404, "Usuario no encontrado");
+        if (!userFound) {
+            return handleErrorClient(res, 404, "Usuario no encontrado");
+        }
 
-        if (usuarioBusqueda.rol !== "profesional") {
+        if (userFound.rol.nombre !== "profesional") {
             return handleErrorClient(res, 401, "Se requiere rol de profesional para acceder.");
         }
 
         next();
     } catch (error) {
-        return handleErrorServer(res, 500, "Error interno del servidor");
+        return handleErrorServer(res, 500, "Error interno del servidor", error.message);
     }
 }

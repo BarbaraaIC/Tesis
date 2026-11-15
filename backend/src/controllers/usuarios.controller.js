@@ -1,92 +1,87 @@
 "use strict";
-import {encryptPassword} from "../handlers/bcrypt.helper.js";
+import { encryptPassword } from "../handlers/bcrypt.helper.js";
 import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
 import { registroValidation } from "../validations/usuario.validation.js";
 import { prisma } from "../config/configDb.js";
 
 export const crearUsuario = async (req, res) => {
 
-    const { error, value} = registroValidation.validate(req.body); 
+    const { error, value } = registroValidation.validate(req.body);
     if (error) {
         return handleErrorClient(res, 400, error.details[0].message);
     }
 
     const {
-        nombre,apellido,rut,correo,telefono,password,fecha_nacimiento,
+        nombre, apellido, rut, correo, telefono, password, fecha_nacimiento,
         ocupacion,
         direccion,
         enfermedades,
         medicamentos,
     } = value;
 
-    try{
+    try {
         const existente = await prisma.usuario.findFirst({
             where: {
-                OR: [{ rut: rut},{ correo: correo},{ telefono: telefono}]
+                OR: [{ rut: rut }, { correo: correo }, { telefono: telefono }]
             }
         });
 
-        if(existente){
-            if(existente.rut === rut) return handleErrorClient (res, 400, "Ya existe este RUT.")
-            if(existente.correo === correo) return handleErrorClient (res, 400, "Ya existe este correo.")
-            if (existente.telefono === telefono) return handleErrorClient (res, 400, "Ya existe este teléfono.")
+        if (existente) {
+            if (existente.rut === rut) return handleErrorClient(res, 400, "Ya existe este RUT.");
+            if (existente.correo === correo) return handleErrorClient(res, 400, "Ya existe este correo.");
+            if (existente.telefono === telefono) return handleErrorClient(res, 400, "Ya existe este teléfono.");
         }
 
-            const hashedPassword = await encryptPassword(password);
-            
-            const nuevoUsuario = await prisma.usuario.create({
-                data: {
-                    nombre,
-                    apellido,
-                    rut,
-                    correo,
-                    telefono,
-                    password: hashedPassword,
-                    fecha_nacimiento,
-                    ocupacion,
-                    direccion,
-                    enfermedades: enfermedades || null,
-                    medicamentos: medicamentos || null,
-                    rol: "paciente"
-                }
-            });
+        const hashedPassword = await encryptPassword(password);
 
-            return handleSuccess (res, 200, "El usuario fue creado exitosamente.")
-    }catch(error){
-        return handleErrorServer (res, 500, "Hubo un problema en el servidor al crear el usuario." , error.message)
+        await prisma.usuario.create({
+            data: {
+                nombre,
+                apellido,
+                rut,
+                correo,
+                telefono,
+                password: hashedPassword,
+                fecha_nacimiento,
+                ocupacion,
+                direccion,
+                enfermedades: enfermedades || null,
+                medicamentos: medicamentos || null,
+                rol: { connect: { nombre: "paciente" } }
+            }
+        });
+
+        return handleSuccess(res, 200, "El usuario fue creado exitosamente.");
+    } catch (error) {
+        return handleErrorServer(res, 500, "Hubo un problema en el servidor al crear el usuario.", error.message);
     }
-}
+};
 
 export const obtenerUsuarios = async (req, res) => {
     try {
         const { rol, sub } = req.usuario;
-            const { search } = req.query;
+        const { search } = req.query;
 
-            let filtroBusqueda = {};
+        let filtroBusqueda = {};
 
-                if (search) {
-                    filtroBusqueda = {
-                        OR: [
-                            {
-                                nombre: {
-                                    contains: search,
-                                    mode: "insensitive",
-                                },
-                            },
-                            {
-                                apellido: {
-                                    contains: search,
-                                    mode: "insensitive",
-                                },
-                            },
-                        ],
-                    };
-                }
+        if (search && search.trim()) {
+            const palabras = search.trim().split(/\s+/);
+            filtroBusqueda = {
+                AND: palabras.map((palabra) => ({
+                    OR: [
+                        { nombre: { contains: palabra, mode: "insensitive" } },
+                        { apellido: { contains: palabra, mode: "insensitive" } },
+                    ],
+                })),
+            };
+        }
 
         let usuarios;
 
         if (rol === "administrador") {
-            usuarios = await prisma.usuario.findMany();
+            usuarios = await prisma.usuario.findMany({
+                where: filtroBusqueda,
+            });
         } else if (rol === "profesional") {
             const profesional = await prisma.usuario.findUnique({
                 where: { rut: sub },
@@ -94,25 +89,39 @@ export const obtenerUsuarios = async (req, res) => {
             });
 
             const tratamientos = await prisma.tratamientoAsignado.findMany({
-                where: { id_profesional: profesional.id_usuario },
+                where: {
+                    id_profesional: profesional.id_usuario,
+                    usuario: filtroBusqueda,
+                },
                 select: { usuario: true },
                 distinct: ["id_usuario"]
             });
 
             usuarios = tratamientos.map(t => t.usuario);
 
-                } else if (rol === "paciente") {
-                usuarios = await prisma.usuario.findMany({
-                    where: { rol: "profesional" }
-                    });
-                } else {
-                    usuarios = await prisma.usuario.findMany({
-                        where: { rut: sub }
-                    });
-                }
+        } else if (rol === "paciente") {
+            usuarios = await prisma.usuario.findMany({
+                where: {
+                    AND: [
+                        { rol: { nombre: "profesional" } },
+                        filtroBusqueda,
+                    ],
+                },
+            });
+        } else {
+            usuarios = await prisma.usuario.findMany({
+                where: {
+                    AND: [
+                        { rut: sub },
+                        filtroBusqueda,
+                    ],
+                },
+            });
+        }
 
-        // CAMBIO: antes se enviaba el usuario completo, incluido el hash de la contraseña
-        return handleSuccess(res, 200, "Usuarios obtenidos correctamente.", usuarios);
+        const usuariosSinPassword = usuarios.map(({ password, ...resto }) => resto);
+
+        return handleSuccess(res, 200, "Usuarios obtenidos correctamente.", usuariosSinPassword);
     } catch (error) {
         return handleErrorServer(res, 500, "Error al obtener usuarios.", error.message);
     }
@@ -121,35 +130,58 @@ export const obtenerUsuarios = async (req, res) => {
 export const obtenerProfesionales = async (req, res) => {
     try {
         const profesionales = await prisma.usuario.findMany({
-            where: { rol: "profesional" },
+            where: { rol: { nombre: "profesional" } },
             select: {
                 id_usuario: true,
                 nombre: true,
                 apellido: true,
-                rol: true,
+                rol: { select: { nombre: true } },
             },
         });
 
-        return handleSuccess(res, 200, "Profesionales obtenidos correctamente.", profesionales);
+
+        const resultado = profesionales.map(p => ({ ...p, rol: p.rol.nombre }));
+
+        return handleSuccess(res, 200, "Profesionales obtenidos correctamente.", resultado);
     } catch (error) {
         return handleErrorServer(res, 500, "Error al obtener profesionales.", error.message);
     }
 };
 
-
 export const cambiarRolUsuario = async (req, res) => {
     try {
-        const { id } = req.params;
+        const idUsuario = parseInt(req.params.id);
         const { rol } = req.body;
+
+        if (!idUsuario) {
+            return handleErrorClient(res, 400, "El id del usuario no es válido.");
+        }
 
         const rolesValidos = ["paciente", "profesional", "administrador"];
         if (!rolesValidos.includes(rol)) {
             return handleErrorClient(res, 400, "Rol inválido. Debe ser: paciente, profesional o administrador.");
         }
 
-        const usuario = await prisma.usuario.update({
-            where: { id_usuario: parseInt(id) },
-            data: { rol }
+        const usuario = await prisma.usuario.findUnique({
+            where: { id_usuario: idUsuario },
+            select: { rut: true, rol: { select: { nombre: true } } },
+        });
+
+        if (!usuario) {
+            return handleErrorClient(res, 404, "El usuario no existe.");
+        }
+
+        if (usuario.rut === req.usuario.sub) {
+            return handleErrorClient(res, 400, "No puedes cambiar tu propio rol.");
+        }
+
+        if (usuario.rol?.nombre === rol) {
+            return handleErrorClient(res, 400, `El usuario ya tiene el rol "${rol}".`);
+        }
+
+        await prisma.usuario.update({
+            where: { id_usuario: idUsuario },
+            data: { rol: { connect: { nombre: rol } } },
         });
 
         return handleSuccess(res, 200, `Rol actualizado a "${rol}" correctamente.`);
@@ -233,7 +265,13 @@ export const actualizarUsuario = async (req, res) => {
         if (direccion) datosActualizados.direccion = direccion;
         if (enfermedades !== undefined) datosActualizados.enfermedades = enfermedades || null;
         if (medicamentos !== undefined) datosActualizados.medicamentos = medicamentos || null;
-        if (autoriza_datos_salud !== undefined) datosActualizados.autoriza_datos_salud = autorizaFinal;
+
+        if (autoriza_datos_salud !== undefined) {
+            datosActualizados.autoriza_datos_salud = autorizaFinal;
+            if (autorizaFinal && !usuarioExistente.autoriza_datos_salud) {
+                datosActualizados.fecha_autorizacion = new Date();
+            }
+        }
 
         if (password) {
             datosActualizados.password = await encryptPassword(password);
@@ -248,4 +286,4 @@ export const actualizarUsuario = async (req, res) => {
     } catch (error) {
         return handleErrorServer(res, 500, "Hubo un problema en el servidor al datos del usuario.", error.message);
     }
-}
+};

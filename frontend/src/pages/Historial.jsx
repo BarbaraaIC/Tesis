@@ -21,6 +21,15 @@ const diaLargo = (dia) => {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
+// "2026-11-13T22:20:00.000Z" -> "13 de noviembre de 2026"
+const fechaAutorizacion = (fecha) =>
+  new Date(fecha).toLocaleDateString('es-CL', {
+    timeZone: 'America/Santiago',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+
 const estados = {
   asistio: { texto: 'Asistió', clase: 'bg-[#E6F7F7] text-[#036f6f]' },
   no_asistio: { texto: 'No asistió', clase: 'bg-red-50 text-red-800' },
@@ -191,8 +200,14 @@ function HistorialPaciente({ idUsuario }) {
   }, [idPaciente, version])
 
   if (error) {
-    return <p className="text-red-600 text-sm">{error}</p>
-  }
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center p-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-8 max-w-md w-full text-center">
+        <p className="text-base text-gray-700">{error}</p>
+      </div>
+    </div>
+  )
+}
 
   if (!datos) {
     return <p className="text-sm text-gray-500">Cargando historial</p>
@@ -274,12 +289,18 @@ function HistorialPaciente({ idUsuario }) {
             )}
           </Tarjeta>
 
-          <Tarjeta titulo="Antecedentes">
-            <p className="text-xs text-gray-500">Enfermedades</p>
-            <p className="text-sm mb-3">{paciente.enfermedades || 'Ninguna declarada'}</p>
-            <p className="text-xs text-gray-500">Medicamentos</p>
-            <p className="text-sm">{paciente.medicamentos || 'Ninguno'}</p>
-          </Tarjeta>
+                <Tarjeta titulo="Antecedentes">
+        <p className="text-xs text-gray-500">Enfermedades</p>
+        <p className="text-sm mb-3">{paciente.enfermedades || 'Ninguna declarada'}</p>
+        <p className="text-xs text-gray-500">Medicamentos</p>
+        <p className="text-sm">{paciente.medicamentos || 'Ninguno'}</p>
+
+        {paciente.fecha_autorizacion && (                                   
+          <p className="text-xs text-gray-400 mt-4">                        
+            Uso de datos de salud autorizado el {fechaAutorizacion(paciente.fecha_autorizacion)}
+          </p>                                                              
+        )}                                                                  
+      </Tarjeta>
         </div>
 
         <div className="flex-[2_1_30rem]">

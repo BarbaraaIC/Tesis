@@ -23,6 +23,7 @@ model Usuario {
   medicamentos             String?
   ocupacion                String
   autoriza_datos_salud     Boolean               @default(false)
+  fecha_autorizacion       DateTime?
   tratamientosAsignados    TratamientoAsignado[] @relation("PacienteTratamientos")
   tratamientosAsignadosPor TratamientoAsignado[] @relation("ProfesionalTratamientos")
 
