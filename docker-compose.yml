@@ -31,7 +31,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-tu_clave_secreta_aqui}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@gmail.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://usuario_tesis:clave_tesis_123@db:5432/mydb_tesis?schema=public}
+      DATABASE_URL: postgresql://${DB_USER:-usuario_tesis}:${DB_PASSWORD:-clave_tesis_123}@db:5432/${DB_NAME:-mydb_tesis}?schema=public
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_USER: ${SMTP_USER}

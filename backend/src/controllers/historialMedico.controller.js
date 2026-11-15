@@ -19,10 +19,16 @@ const hoyEnChile = () =>
 const obtenerActual = async (req) => {
     const actual = await prisma.usuario.findUnique({
         where: { rut: req.usuario?.sub },
-        select: { id_usuario: true, rol: true },
+        select: {
+            id_usuario: true,
+            rol: { select: { nombre: true } },
+        },
     });
     if (!actual) return null;
-    return { id_usuario: actual.id_usuario, rol: (actual.rol || "").toLowerCase() };
+    return {
+        id_usuario: actual.id_usuario,
+        rol: (actual.rol?.nombre || "").toLowerCase(),
+    };
 };
 
 export const getHistorialPaciente = async (req, res) => {
@@ -67,11 +73,27 @@ export const getHistorialPaciente = async (req, res) => {
 
         const paciente = await prisma.usuario.findUnique({
             where: { id_usuario: idPaciente },
-            select: { nombre: true, apellido: true, enfermedades: true, medicamentos: true },
+            select: {
+                nombre: true,
+                apellido: true,
+                enfermedades: true,
+                medicamentos: true,
+                autoriza_datos_salud: true,
+                fecha_autorizacion: true,
+            },
         });
         if (!paciente) {
             return handleErrorClient(res, 404, "El paciente no fue encontrado.");
         }
+
+        if (!paciente.autoriza_datos_salud && !esAdministrador) {
+            const mensaje = actual.rol === "paciente"
+                ? "Debes aceptar la autorización de uso de datos de salud para ver tu historial."
+                : "El paciente no ha autorizado el uso de sus datos de salud.";
+            return handleErrorClient(res, 403, mensaje);
+        }
+
+        const { autoriza_datos_salud, ...pacientePublico } = paciente;
 
         const reservas = await prisma.reserva.findMany({
             where: {
@@ -91,23 +113,24 @@ export const getHistorialPaciente = async (req, res) => {
             orderBy: [{ dia: "desc" }, { hora: "desc" }],
         });
 
-const hoy = hoyEnChile();
+        const hoy = hoyEnChile();
 
-    const realizadas = reservas.filter((reserva) => reserva.asistencia === "asistio");
-    const pasadas = reservas.filter((reserva) => reserva.asistencia !== "pendiente");
-    const proxima = reservas
+        const realizadas = reservas.filter((reserva) => reserva.asistencia === "asistio");
+        const pasadas = reservas.filter((reserva) => reserva.asistencia !== "pendiente");
+        const proxima = reservas
             .filter((reserva) => reserva.asistencia === "pendiente" && aDia(reserva.dia) >= hoy)
             .at(-1);
 
-    const pendientesPorRegistrar = puedeRegistrar ? reservas
+        const pendientesPorRegistrar = puedeRegistrar
+            ? reservas
                 .filter((reserva) => reserva.asistencia === "pendiente" && aDia(reserva.dia) <= hoy)
-                    .map((reserva) => ({
-                        cod_reserva: reserva.cod_reserva,
-                        dia: aDia(reserva.dia),
-                        hora: aHora(reserva.hora),
-                        tratamiento: reserva.asignacion.tratamiento.descripcion,
-                        observaciones: reserva.asignacion.observaciones ?? "",
-                    }))
+                .map((reserva) => ({
+                    cod_reserva: reserva.cod_reserva,
+                    dia: aDia(reserva.dia),
+                    hora: aHora(reserva.hora),
+                    tratamiento: reserva.asignacion.tratamiento.descripcion,
+                    observaciones: reserva.asignacion.observaciones ?? "",
+                }))
             : [];
 
         const referencia = proxima ?? realizadas[0] ?? reservas[0];
@@ -124,7 +147,7 @@ const hoy = hoyEnChile();
         }));
 
         return handleSuccess(res, 200, "Historial obtenido con éxito.", {
-            paciente,
+            paciente: pacientePublico,
             puedeRegistrar,
             pendientesPorRegistrar,
             resumen: {
@@ -170,7 +193,11 @@ export const registrarSesion = async (req, res) => {
 
         const reserva = await prisma.reserva.findUnique({
             where: { cod_reserva },
-            include: { asignacion: true },
+            include: {
+                asignacion: {
+                    include: { usuario: { select: { autoriza_datos_salud: true } } },
+                },
+            },
         });
         if (!reserva) {
             return handleErrorClient(res, 404, "La reserva no fue encontrada.");
@@ -178,6 +205,10 @@ export const registrarSesion = async (req, res) => {
 
         if (actual.rol === "profesional" && reserva.asignacion.id_profesional !== actual.id_usuario) {
             return handleErrorClient(res, 403, "Solo puedes registrar tus propias sesiones.");
+        }
+
+        if (actual.rol === "profesional" && !reserva.asignacion.usuario.autoriza_datos_salud) {
+            return handleErrorClient(res, 403, "El paciente no ha autorizado el uso de sus datos de salud.");
         }
 
         if (aDia(reserva.dia) > hoyEnChile()) {

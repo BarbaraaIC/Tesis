@@ -15,24 +15,26 @@ export const asignarTratamiento = async (req, res) => {
         const codTratamiento = parseInt(cod_tratamiento);
 
         const paciente = await prisma.usuario.findUnique({
-            where: { id_usuario: usuario }
+            where: { id_usuario: usuario },
+            include: { rol: { select: { nombre: true } } },
         });
 
         if (!paciente) {
-            return handleErrorClient(res, 444, "El usuario especificado no existe.");
+            return handleErrorClient(res, 404, "El usuario especificado no existe.");
         }
 
-        if (paciente.rol !== "paciente") {
+        if (paciente.rol?.nombre !== "paciente") {
             return handleErrorClient(res, 403, "Acceso denegado: Solo se pueden asignar tratamientos a usuarios con el rol 'paciente'");
         }
 
         const profesionalVerificar = await prisma.usuario.findUnique({
-            where: { id_usuario: profesional }
+            where: { id_usuario: profesional },
+            include: { rol: { select: { nombre: true } } },
         });
 
-        if (!profesionalVerificar || profesionalVerificar.rol !== "profesional") { 
+        if (!profesionalVerificar || profesionalVerificar.rol?.nombre !== "profesional") {
             return handleErrorClient(res, 403, "Acceso denegado: El ID actual no corresponde a un profesional autorizado.");
-}
+        }
 
         const tratamientoExiste = await prisma.tratamiento.findUnique({
             where: { cod_tratamiento: codTratamiento }
@@ -45,9 +47,9 @@ export const asignarTratamiento = async (req, res) => {
             data: {
                 id_usuario: usuario,
                 id_profesional: profesional,
-                cod_tratamiento: codTratamiento, 
+                cod_tratamiento: codTratamiento,
                 observaciones: observaciones || null,
-                fecha_asignacion: new Date(), 
+                fecha_asignacion: new Date(),
                 estado_actual: "Activo"
             }
         });
@@ -55,7 +57,7 @@ export const asignarTratamiento = async (req, res) => {
         return handleSuccess(res, 201, "Tratamiento asignado con éxito.", nuevoTratamiento);
 
     } catch (error) {
-        return handleErrorServer(res, 500, "Error al asignar tratamiento.", error);
+        return handleErrorServer(res, 500, "Error al asignar tratamiento.", error.message);
     }
 };
 
@@ -64,17 +66,9 @@ export const getProfesionalesPorPaciente = async (req, res) => {
         const { id_usuario } = req.params;
         const paciente = parseInt(id_usuario);
 
-        const asignaciones = await prisma.tratamientoAsignado.findMany({
-            where: { id_usuario: paciente },
-            distinct: ['id_profesional'],
-            include: {
-                profesional: true,
-            },
-        });
-
         const profesionales = await prisma.usuario.findMany({
             where: {
-                rol: "profesional",
+                rol: { nombre: "profesional" },
                 tratamientosAsignadosPor: {
                     some: {
                         id_usuario: paciente,
@@ -83,9 +77,11 @@ export const getProfesionalesPorPaciente = async (req, res) => {
             },
         });
 
-        return handleSuccess(res, 200, "Profesionales obtenidos con éxito.", profesionales);
+        const profesionalesSinPassword = profesionales.map(({ password, ...resto }) => resto);
+
+        return handleSuccess(res, 200, "Profesionales obtenidos con éxito.", profesionalesSinPassword);
     } catch (error) {
-        return handleErrorServer(res, 500, "Error al obtener los profesionales del paciente.", error);
+        return handleErrorServer(res, 500, "Error al obtener los profesionales del paciente.", error.message);
     }
 };
 
@@ -117,6 +113,6 @@ export const actualizarAsistencia = async (req, res) => {
 
         return handleSuccess(res, 200, "Asistencia actualizada con éxito.", asignacionActualizada);
     } catch (error) {
-        return handleErrorServer(res, 500, "Error al actualizar la asistencia.", error);
+        return handleErrorServer(res, 500, "Error al actualizar la asistencia.", error.message);
     }
 };

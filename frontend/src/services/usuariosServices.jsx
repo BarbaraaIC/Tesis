@@ -29,10 +29,10 @@ export async function actualizarUsuario(id, datos) {
     try {
         const response = await axios.patch(`/usuarios/actualizarDatos/${id}`, datos)
         return response.data
-        
+
     } catch (error) {
         console.error("Error al actualizar datos del usuario:", error)
-        throw error
+        throw new Error(error.response?.data?.message || "No se pudo actualizar el usuario.", { cause: error })
     }
 }
 

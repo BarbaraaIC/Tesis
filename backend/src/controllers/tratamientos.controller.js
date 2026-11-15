@@ -10,9 +10,14 @@ export const crearTratamiento = async (req, res) => {
             return handleErrorClient(res, 400, "El campo id_servicio es obligatorio.");
         }
 
+        const nombre = String(descripcion ?? "").trim();
+        if (!nombre) {
+            return handleErrorClient(res, 400, "La descripción del tratamiento es obligatoria.");
+        }
+
         const servicioBuscar = await prisma.servicio.findUnique({
-            where: { 
-                id_servicio: parseInt(id_servicio) 
+            where: {
+                id_servicio: parseInt(id_servicio)
             }
         });
 
@@ -20,10 +25,20 @@ export const crearTratamiento = async (req, res) => {
             return handleErrorClient(res, 404, "No existe un servicio con ese ID.");
         }
 
+        const existente = await prisma.tratamiento.findFirst({
+            where: {
+                descripcion: { equals: nombre, mode: "insensitive" }
+            }
+        });
+
+        if (existente) {
+            return handleErrorClient(res, 409, "Ya existe un tratamiento con ese nombre.");
+        }
+
         const nuevoTratamiento = await prisma.tratamiento.create({
             data: {
                 costo: parseInt(costo),
-                descripcion: descripcion,
+                descripcion: nombre,
                 id_servicio: parseInt(id_servicio)
             }
         });

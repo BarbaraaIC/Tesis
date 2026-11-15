@@ -6,29 +6,31 @@ import { crearServicioValidation } from "../validations/servicio.validations.js"
 
 export const crearServicio = async (req, res) => {
 
-    const { error, value} = crearServicioValidation.validate(req.body); 
+    const { error, value } = crearServicioValidation.validate(req.body);
     if (error) {
         return handleErrorClient(res, 400, error.details[0].message);
     }
-    
-    try{
-        const{tipo_servicio, descripcion} = req.body;
+
+    try {
+        const tipo_servicio = String(value.tipo_servicio ?? "").trim();
+        const descripcion = String(value.descripcion ?? "").trim();
+
+        if (!tipo_servicio || !descripcion) {
+            return handleErrorClient(res, 400, "Se debe ingresar el tipo de servicio y una breve descripción");
+        }
 
         const existente = await prisma.servicio.findFirst({
             where: {
-                OR: [{ tipo_servicio: tipo_servicio}]
+                tipo_servicio: { equals: tipo_servicio, mode: "insensitive" }
             }
         });
-        if(existente){
-            if(existente.tipo_servicio === tipo_servicio) return handleErrorClient (res, 400, "Ya existe este servicio.")
+
+        if (existente) {
+            return handleErrorClient(res, 409, "Ya existe un servicio con ese nombre.");
         }
 
-        const {correo, rol, sub: rut } = req.usuario; 
-            console.log(`Servicio creado por el usuario con RUT: ${rut}, Correo: ${correo} y Rol: ${rol}`);
-
-        if(!tipo_servicio || !descripcion){
-            return handleErrorClient(res, 400, "Se debe ingresar el tipo de servicio y una breve descripción");
-        }
+        const { correo, rol, sub: rut } = req.usuario;
+        console.log(`Servicio creado por el usuario con RUT: ${rut}, Correo: ${correo} y Rol: ${rol}`);
 
         const nuevoServicio = await prisma.servicio.create({
             data: {
@@ -39,7 +41,7 @@ export const crearServicio = async (req, res) => {
 
         return handleSuccess(res, 200, "Servicio creado exitosamente");
 
-    }catch(error){
+    } catch (error) {
         return handleErrorServer(res, 500, "Hubo un problema con el servidor al crear el servicio.", error.message);
     }
 }
