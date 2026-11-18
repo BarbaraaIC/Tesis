@@ -37,7 +37,7 @@ function formatearHora(hora) {
     return hora.toISOString().slice(11, 16);
 }
 
-function armarDatos(reserva) {
+export function armarDatos(reserva) {
     const asignacion = reserva.asignacion;
     return {
         paciente: asignacion.usuario,
