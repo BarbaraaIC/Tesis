@@ -2,6 +2,7 @@
 import cron from "node-cron";
 import { prisma } from "../config/configDb.js";
 import { enviarRecordatorioReserva } from "./email.service.js";
+import { enviarRecordatorioReservaWhatsApp } from "./whatsapp.service.js";
 
 const ZONA = "America/Santiago";
 
@@ -22,7 +23,7 @@ export async function enviarRecordatoriosDeManana() {
             include: {
                 asignacion: {
                     include: {
-                        usuario: { select: { nombre: true, apellido: true, correo: true } },
+                        usuario: { select: { nombre: true, apellido: true, correo: true, telefono: true } },
                         profesional: { select: { nombre: true, apellido: true, correo: true } },
                         tratamiento: true,
                     },
@@ -31,8 +32,14 @@ export async function enviarRecordatoriosDeManana() {
         });
 
         for (const reserva of reservas) {
-            const enviado = await enviarRecordatorioReserva(reserva);
-            if (enviado) {
+            // Correo y WhatsApp salen a la vez; ninguno lanza error (devuelven true/false).
+            const [correoEnviado, whatsappEnviado] = await Promise.all([
+                enviarRecordatorioReserva(reserva),
+                enviarRecordatorioReservaWhatsApp(reserva),
+            ]);
+
+            // Se marca como enviado si al menos un canal llegó a salir.
+            if (correoEnviado || whatsappEnviado) {
                 await prisma.reserva.update({
                     where: { cod_reserva: reserva.cod_reserva },
                     data: { recordatorio_enviado: true },

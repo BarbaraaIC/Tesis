@@ -2,6 +2,7 @@
 import { prisma } from "../config/configDb.js";
 import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
 import { enviarConfirmacionReserva, enviarCancelacionReserva,  } from "../services/email.service.js";
+import { enviarConfirmacionReservaWhatsApp } from "../services/whatsapp.service.js";
 import { isAdminOrProfesional } from "../middleware/authorization.middleware.js";
 
 async function obtenerUsuarioActual(req) {
@@ -74,14 +75,19 @@ export const crearReserva = async (req, res) => {
                 include: {
                     asignacion: {
                         include: {
-                            usuario: { select: { nombre: true, apellido: true, correo: true } },
+                            usuario: { select: { nombre: true, apellido: true, correo: true, telefono: true } },
                             profesional: { select: { nombre: true, apellido: true, correo: true } },
                             tratamiento: true,
                         },
                     },
                 },
             })
-            .then((reservaCompleta) => enviarConfirmacionReserva(reservaCompleta))
+            .then((reservaCompleta) =>
+                Promise.all([
+                    enviarConfirmacionReserva(reservaCompleta),
+                    enviarConfirmacionReservaWhatsApp(reservaCompleta),
+                ])
+            )
             .catch((error) => console.error("Error al enviar la confirmación:", error.message));
 
         return handleSuccess(res, 201, "Reserva agendada con éxito.", nuevaReserva);
