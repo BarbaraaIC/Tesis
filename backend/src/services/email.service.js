@@ -1,11 +1,7 @@
 "use strict";
-import fs from "fs";
-import { fileURLToPath } from "url";
 import { transporter } from "../config/mailer.js";
 
-const RUTA_LOGO = fileURLToPath(new URL("../assets/logoKinexCenter.png", import.meta.url));
-const HAY_LOGO = fs.existsSync(RUTA_LOGO);
-const CID_LOGO = "logoKinexCenter"; 
+const URL_LOGO = process.env.LOGO_URL || "";
 
 const TITULO_CORREO = "KinexCenter";
 const SUBTITULO_CORREO = "Kinesiología y Bienestar Integral";
@@ -52,9 +48,9 @@ function plantillaHtml(titulo, lineas) {
     const parrafos = lineas
         .map((linea) => `<p style="margin:0 0 12px;color:#1f2937;font-size:15px;line-height:1.5">${linea}</p>`)
         .join("");
-    const celdaLogo = HAY_LOGO
+    const celdaLogo = URL_LOGO
         ? `<td style="padding-right:12px;vertical-align:middle">
-        <img src="cid:${CID_LOGO}" alt="" height="40" style="display:block;height:40px;width:auto;border:0">
+        <img src="${URL_LOGO}" alt="KinexCenter" height="40" style="display:block;height:40px;width:auto;border:0">
         </td>`
         : "";
 
@@ -94,14 +90,10 @@ export async function enviarCorreo({ to, subject, text, html }) {
 
     try {
         await transporter.sendMail({
-            from: process.env.MAIL_FROM || process.env.SMTP_USER,
             to,
             subject,
             text,
             html,
-            attachments: HAY_LOGO
-                ? [{ filename: "logoKinexCenter.png", path: RUTA_LOGO, cid: CID_LOGO }]
-                : [],
         });
         return true;
     } catch (error) {
@@ -162,7 +154,7 @@ export async function enviarCancelacionReserva(reserva) {
     const d = armarDatos(reserva);
     const nombrePaciente = `${d.paciente.nombre} ${d.paciente.apellido}`;
     const nombreProfesional = `${d.profesional.nombre} ${d.profesional.apellido}`;
- 
+
     const alPaciente = enviarCorreo({
         to: d.paciente.correo,
         subject: "Tu hora fue cancelada",
@@ -174,7 +166,7 @@ export async function enviarCancelacionReserva(reserva) {
             "Si lo necesitas, puedes reservar una nueva hora desde la plataforma.",
         ]),
     });
- 
+
     const alProfesional = enviarCorreo({
         to: d.profesional.correo,
         subject: "Hora cancelada",
@@ -184,6 +176,6 @@ export async function enviarCancelacionReserva(reserva) {
             `<strong>Fecha:</strong> ${escaparHtml(d.fecha)}<br><strong>Hora:</strong> ${escaparHtml(d.hora)}`,
         ]),
     });
- 
+
     await Promise.all([alPaciente, alProfesional]);
 }
