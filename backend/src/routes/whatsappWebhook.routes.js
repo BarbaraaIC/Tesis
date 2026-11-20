@@ -1,7 +1,7 @@
 "use strict";
 import express, { Router } from "express";
 import crypto from "node:crypto";
-import { actualizarEstadoPorWamid } from "../services/whatsapp.mensajes.service.js";
+import { actualizarEstadoPorWamid } from "../services/whatsappMen.service.js";
 
 const router = Router();
 
