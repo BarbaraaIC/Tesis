@@ -1,20 +1,7 @@
 "use strict";
 import { armarDatos } from "./email.service.js";
-import { registrarMensaje, motivoLegible } from "./whatsapp.mensajes.service.js";
+import { registrarMensaje, motivoLegible } from "./whatsappMen.service.js";
 
-// ───────────── Configuración (variables de entorno del backend) ─────────────
-// WA_TOKEN             token permanente del usuario del sistema
-// WA_PHONE_NUMBER_ID   "Identificador de número de teléfono" (Configuración de la API)
-// WA_BANNER_URL        (opcional) URL pública https de la imagen del encabezado.
-//                      Solo si creaste las plantillas con encabezado de imagen.
-// WA_BOTON_DINAMICO    (opcional) "true" si el botón de tus plantillas tiene una URL con {{1}}
-// WA_TPL_CONFIRMACION  (opcional) nombre de la plantilla, por defecto confirmacion_reserva
-// WA_TPL_RECORDATORIO  (opcional) nombre de la plantilla, por defecto recordatorio_reserva
-// WA_IDIOMA            (opcional) idioma de las plantillas, por defecto es_CL
-// WA_API_VERSION       (opcional) por defecto v25.0
-//
-// Se leen al momento de enviar (no al importar el archivo), así no dependen
-// del orden en que se cargue dotenv.
 function configuracion() {
     return {
         apiVersion: process.env.WA_API_VERSION || "v25.0",
@@ -37,7 +24,7 @@ function normalizarTelefono(telefono) {
     return digitos;
 }
 
-// Meta rechaza variables vacías, con saltos de línea, tabulaciones o muchos espacios seguidos.
+
 function limpiar(texto) {
     const limpio = String(texto ?? "")
         .replace(/[\n\r\t]+/g, " ")
@@ -46,8 +33,7 @@ function limpiar(texto) {
     return limpio || "-";
 }
 
-// Devuelve true si Meta aceptó el mensaje y false si no. Nunca lanza error.
-// Además guarda cada intento en la tabla mensajes_whatsapp para poder hacerle seguimiento.
+
 async function enviarPlantilla({ to, plantilla, variables, botonParam, cod_reserva, tipo }) {
     const cfg = configuracion();
     const telefono = normalizarTelefono(to);
@@ -115,7 +101,6 @@ async function enviarPlantilla({ to, plantilla, variables, botonParam, cod_reser
             return false;
         }
 
-        // "wamid" identifica el mensaje: el webhook de Meta lo usa para avisar entregado / leído.
         await registrar({ estado: "enviado", wamid: datos.messages?.[0]?.id ?? null });
         return true;
     } catch (error) {
@@ -125,12 +110,11 @@ async function enviarPlantilla({ to, plantilla, variables, botonParam, cod_reser
     }
 }
 
-// Orden de variables = orden de {{1}}..{{5}} en las plantillas:
-// nombre, tratamiento, profesional, fecha, hora
+
 function variablesReserva(reserva) {
     const d = armarDatos(reserva);
     return {
-        telefono: d.paciente.telefono, // <- ajusta este nombre si tu campo se llama distinto
+        telefono: d.paciente.telefono,
         variables: [
             d.paciente.nombre,
             d.tratamiento,
