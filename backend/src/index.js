@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { connectDB } from "./config/configDb.js";
 import routes from "./routes/index.routes.js";
-import webhookWhatsApp from "./routes/whatsapp.webhook.routes.js";
+import webhookWhatsApp from "./routes/whatsappWebhook.routes.js";
 import { iniciarRecordatorios } from "./services/recordatorio.service.js";
 
 const app = express();
