@@ -1,13 +1,14 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import { connectDB } from "./config/configDb.js";
 import routes from "./routes/index.routes.js";
+import webhookWhatsApp from "./routes/whatsapp.webhook.routes.js";
 import { iniciarRecordatorios } from "./services/recordatorio.service.js";
 
-dotenv.config();
-
 const app = express();
+
+app.use("/webhook", webhookWhatsApp);
 
 app.use(cors());
 app.use(express.json());

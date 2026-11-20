@@ -92,7 +92,26 @@ model Reserva {
   asistencia      EstadoAsistencia    @default(pendiente)
   recordatorio_enviado Boolean        @default(false)
   id_asignacion   Int
+  mensajesWhatsapp MensajeWhatsapp[]
   asignacion      TratamientoAsignado @relation(fields: [id_asignacion], references: [id_asignacion])
 
   @@map("reservas")
+}
+
+model MensajeWhatsapp {
+  id_mensaje    Int       @id @default(autoincrement())
+  cod_reserva   Int
+  reserva       Reserva   @relation(fields: [cod_reserva], references: [cod_reserva], onDelete: Cascade)
+  tipo          String    // confirmacion | recordatorio
+  telefono      String
+  wamid         String?   @unique
+  estado        String    @default("enviado") // enviado | entregado | leido | fallido
+  error_codigo  Int?
+  error_mensaje String?
+  creado_en     DateTime  @default(now())
+  entregado_en  DateTime?
+  leido_en      DateTime?
+
+  @@index([cod_reserva])
+  @@map("mensajes_whatsapp")
 }
