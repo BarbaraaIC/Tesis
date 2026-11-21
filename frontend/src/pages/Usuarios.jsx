@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getUsuarios, cambiarRolUsuario } from '../services/usuariosServices.jsx'
 
-const ROLES_DISPONIBLES = ['profesional', 'paciente']
+const roles_disponibles = ['profesional', 'paciente']
 
 const Usuarios = () => {
   const { token, rol } = useAuth()
@@ -88,18 +88,18 @@ const Usuarios = () => {
     return claseBase
   }
 
-  const renderizarCeldaDeRol = (usuario) => {
+  const renderizarControlesDeRol = (usuario) => {
     const estaEditandoEsteUsuario = idUsuarioEnEdicion === usuario.id_usuario
 
     if (estaEditandoEsteUsuario) {
       return (
-        <td className="p-3">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={rolSeleccionado}
             onChange={(evento) => setRolSeleccionado(evento.target.value)}
             className="border border-gray-200 rounded-md text-sm px-2 py-1"
           >
-            {ROLES_DISPONIBLES.map((rolDisponible) => (
+            {roles_disponibles.map((rolDisponible) => (
               <option key={rolDisponible} value={rolDisponible}>
                 {rolDisponible}
               </option>
@@ -108,27 +108,27 @@ const Usuarios = () => {
 
           <button
             onClick={() => manejarClickGuardar(usuario)}
-            className="ml-2 text-xs bg-[#04B6B6] text-white px-2 py-1 rounded-md"
+            className="text-xs bg-[#04B6B6] text-white px-2 py-1 rounded-md"
           >
             Guardar
           </button>
 
           <button
             onClick={manejarCancelarEdicion}
-            className="ml-2 text-xs text-gray-600 px-2 py-1"
+            className="text-xs text-gray-600 px-2 py-1"
           >
             Cancelar
           </button>
-        </td>
+        </div>
       )
     }
 
     if (usuario.rol === 'administrador') {
-      return <td className="p-3 text-gray-600">{usuario.rol}</td>
+      return <span className="text-gray-600">{usuario.rol}</span>
     }
 
     return (
-      <td className="p-3 text-gray-600">
+      <span className="text-gray-600">
         {usuario.rol}
         <button
           onClick={() => manejarClickEditar(usuario)}
@@ -136,7 +136,7 @@ const Usuarios = () => {
         >
           Editar
         </button>
-      </td>
+      </span>
     )
   }
 
@@ -191,7 +191,7 @@ const Usuarios = () => {
         />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#04B6B6] text-left text-black-500 uppercase text-xs tracking-wide">
@@ -212,12 +212,45 @@ const Usuarios = () => {
                   <td className="p-3 text-gray-800">{usuario.apellido}</td>
                   <td className="p-3 text-gray-600">{usuario.telefono}</td>
                   <td className="p-3 text-gray-600">{usuario.correo}</td>
-                  {renderizarCeldaDeRol(usuario)}
+                  <td className="p-3">{renderizarControlesDeRol(usuario)}</td>
                 </tr>
               )
             })}
           </tbody>
         </table>
+
+        {usuariosVisibles.length === 0 && (
+          <p className="p-6 text-center text-gray-400 text-sm">No se encontraron usuarios.</p>
+        )}
+      </div>
+
+      <div className="md:hidden flex flex-col gap-3">
+        {usuariosVisibles.map((usuario) => (
+          <div
+            key={usuario.id_usuario}
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-4"
+          >
+            <p className="font-semibold text-gray-800 break-words">
+              {usuario.nombre} {usuario.apellido}
+            </p>
+            <p className="text-sm text-gray-500">{usuario.rut}</p>
+
+            <dl className="mt-3 flex flex-col gap-1 text-sm">
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 text-gray-400">Teléfono</dt>
+                <dd className="text-gray-600 break-words min-w-0">{usuario.telefono || '-'}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 text-gray-400">Correo</dt>
+                <dd className="text-gray-600 break-all min-w-0">{usuario.correo || '-'}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-16 shrink-0 text-gray-400">Rol</dt>
+                <dd className="min-w-0">{renderizarControlesDeRol(usuario)}</dd>
+              </div>
+            </dl>
+          </div>
+        ))}
 
         {usuariosVisibles.length === 0 && (
           <p className="p-6 text-center text-gray-400 text-sm">No se encontraron usuarios.</p>
