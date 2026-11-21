@@ -375,7 +375,6 @@ function SelectorPaciente() {
   useEffect(() => {
     const cargarPacientes = async () => {
       try {
-        // el backend entrega solo los pacientes que este usuario puede ver
         const respuesta = await cargarHistorialMedico('pacientes')
         setPacientes(respuesta.data || [])
       } catch (errorCapturado) {
@@ -424,7 +423,7 @@ function SelectorPaciente() {
                 <span className={paciente.autorizado ? '' : 'text-gray-400'}>
                   {paciente.nombre} {paciente.apellido}
                   {!paciente.autorizado && (
-                    <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                    <span className="ml-2 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-600">
                       Sin autorización
                     </span>
                   )}
