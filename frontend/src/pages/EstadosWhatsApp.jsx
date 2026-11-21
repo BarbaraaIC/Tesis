@@ -27,7 +27,6 @@ const estados = {
     detalle: (mensaje) => mensaje.error_mensaje || 'No se pudo enviar el mensaje',
   },
 }
-
 function formatearMomento(valor) {
   if (!valor) {
     return ''
@@ -66,19 +65,16 @@ const EstadoWhatsApp = ({ mensajes }) => {
     return null
   }
 
-  const fallidos = ultimos.filter((mensaje) => mensaje.estado === 'fallido' && mensaje.error_mensaje)
-
   return (
-    <span className="flex flex-col gap-1 sm:w-[220px] shrink-0">
-      <span className="flex flex-wrap gap-1">
-        {ultimos.map((mensaje) => {
-          const estado = estados[mensaje.estado] || estados.enviado
-          const nombreTipo = textos_tipo[mensaje.tipo] || mensaje.tipo
-          const detalle = nombreTipo + ' por WhatsApp: ' + estado.detalle(mensaje)
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:pl-[156px]">
+      {ultimos.map((mensaje) => {
+        const estado = estados[mensaje.estado] || estados.enviado
+        const nombreTipo = textos_tipo[mensaje.tipo] || mensaje.tipo
+        const detalle = nombreTipo + ' por WhatsApp: ' + estado.detalle(mensaje)
 
-          return (
+        return (
+          <span key={mensaje.id_mensaje} className="inline-flex flex-wrap items-center gap-2">
             <span
-              key={mensaje.id_mensaje}
               title={detalle}
               aria-label={detalle}
               className={'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium ' + estado.clase}
@@ -86,15 +82,12 @@ const EstadoWhatsApp = ({ mensajes }) => {
               <span aria-hidden="true">{estado.simbolo}</span>
               {nombreTipo}
             </span>
-          )
-        })}
-      </span>
-
-      {fallidos.map((mensaje) => (
-        <span key={'motivo-' + mensaje.id_mensaje} className="text-xs text-red-600">
-          {(textos_tipo[mensaje.tipo] || mensaje.tipo) + ': ' + mensaje.error_mensaje}
-        </span>
-      ))}
+            {mensaje.estado === 'fallido' && mensaje.error_mensaje && (
+              <span className="text-xs text-red-600">{mensaje.error_mensaje}</span>
+            )}
+          </span>
+        )
+      })}
     </span>
   )
 }

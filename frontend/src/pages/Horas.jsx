@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getReservas, getReservasPorUsuario, getReservasPorProfesional, cancelarReserva, marcarAsistencia } from '../services/reservasServices.jsx'
-import EstadoWhatsApp, { tieneFalloWhatsApp } from './EstadosWhatsApp.jsx'
+import EstadoWhatsApp, { tieneFalloWhatsApp } from './EstadoWhatsApp.jsx'
 
 const nombre_meses_cortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
 const nombre_dias_cortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
@@ -66,7 +66,7 @@ function fechaHoraDeReserva(reserva) {
   )
 }
 
-
+// Se puede cancelar en cualquier momento, excepto cuando faltan "horas_minimas_para_cancelar"
 
 function puedeCancelarReserva(reserva) {
   const inicio = fechaHoraDeReserva(reserva)
@@ -324,6 +324,7 @@ const MisReservas = () => {
 
   const grupos = agruparPorDia(reservasFiltradas)
   if (filtro === 'pasadas') {
+    // En "Pasadas" se muestra primero lo más reciente
     grupos.reverse()
   }
 
@@ -337,6 +338,7 @@ const MisReservas = () => {
   }
 
   const cancelarHora = async (reserva) => {
+    // Se vuelve a validar al momento de hacer clic, por si el plazo venció con la página abierta
     if (!puedeCancelarReserva(reserva)) {
       setAlerta({
         texto: `No se puede cancelar una hora con menos de ${horas_minimas_para_cancelar} horas de anticipación`,
@@ -549,73 +551,75 @@ const MisReservas = () => {
                   return (
                     <div
                       key={reserva.cod_reserva}
-                      className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-3 py-2 rounded-lg text-sm hover:bg-gray-100"
+                      className="flex flex-col gap-1 px-3 py-2 rounded-lg text-sm hover:bg-gray-100"
                     >
-                      <span className="flex items-center gap-3 sm:w-[140px] shrink-0 text-gray-700">
-                        <span
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: colorDeTratamiento(descripcion) }}
-                        />
-                        {calcularRangoHora(reserva)}
-                      </span>
-                      <span className={'flex-1 font-semibold ' + claseTextoEvento}>{descripcion}</span>
-                      <span className="sm:w-[240px] text-gray-600" title={tituloColumnaPersona}>
-                        {nombrePersona}
-                        {esAdministrador && (
-                          <span className="block text-xs text-gray-500">
-                            Prof. {obtenerNombreProfesional(reserva)}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                        <span className="flex items-center gap-3 sm:w-[140px] shrink-0 text-gray-700">
+                          <span
+                            className="w-3 h-3 rounded-full shrink-0"
+                            style={{ backgroundColor: colorDeTratamiento(descripcion) }}
+                          />
+                          {calcularRangoHora(reserva)}
+                        </span>
+                        <span className={'flex-1 font-semibold ' + claseTextoEvento}>{descripcion}</span>
+                        <span className="sm:w-[240px] text-gray-600" title={tituloColumnaPersona}>
+                          {nombrePersona}
+                          {esAdministrador && (
+                            <span className="block text-xs text-gray-500">
+                              Prof. {obtenerNombreProfesional(reserva)}
+                            </span>
+                          )}
+                        </span>
+                        {puedeMarcar && !esFutura && (
+                          <span className="flex gap-1 self-start sm:self-auto" role="group" aria-label="Asistencia">
+                            <button
+                              type="button"
+                              onClick={() => cambiarAsistencia(reserva, 'asistio')}
+                              disabled={marcandoId === reserva.cod_reserva}
+                              aria-pressed={estadoAsistencia === 'ASISTIO'}
+                              className={'px-3 py-1 rounded border text-xs font-medium disabled:opacity-50 ' + claseAsistio}
+                            >
+                              Asistió
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => cambiarAsistencia(reserva, 'no_asistio')}
+                              disabled={marcandoId === reserva.cod_reserva}
+                              aria-pressed={estadoAsistencia === 'NO_ASISTIO'}
+                              className={'px-3 py-1 rounded border text-xs font-medium disabled:opacity-50 ' + claseNoAsistio}
+                            >
+                              No asistió
+                            </button>
                           </span>
                         )}
-                      </span>
+                        {!puedeMarcar && estadoAsistencia === 'asistio' && (
+                          <span className="text-xs font-semibold text-green-700">Asististe</span>
+                        )}
+                        {!puedeMarcar && estadoAsistencia === 'no_asistio' && (
+                          <span className="text-xs font-semibold text-red-600">No asististe</span>
+                        )}
+                        {!esPasado && cancelable && (
+                          <button
+                            type="button"
+                            onClick={() => cancelarHora(reserva)}
+                            disabled={cancelandoId === reserva.cod_reserva}
+                            className="self-start sm:self-auto px-3 py-1 rounded text-xs font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                          >
+                            {cancelandoId === reserva.cod_reserva ? 'Cancelando...' : 'Cancelar'}
+                          </button>
+                        )}
+                        {!esPasado && !cancelable && (
+                          <button
+                            type="button"
+                            disabled
+                            title={`No se puede cancelar una hora con menos de ${horas_minimas_para_cancelar} horas de anticipación`}
+                            className="self-start sm:self-auto px-3 py-1 rounded text-xs font-medium bg-gray-200 text-gray-500 cursor-not-allowed"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
                       {puedeMarcar && <EstadoWhatsApp mensajes={reserva.mensajesWhatsapp} />}
-                      {puedeMarcar && !esFutura && (
-                        <span className="flex gap-1 self-start sm:self-auto" role="group" aria-label="Asistencia">
-                          <button
-                            type="button"
-                            onClick={() => cambiarAsistencia(reserva, 'asistio')}
-                            disabled={marcandoId === reserva.cod_reserva}
-                            aria-pressed={estadoAsistencia === 'ASISTIO'}
-                            className={'px-3 py-1 rounded border text-xs font-medium disabled:opacity-50 ' + claseAsistio}
-                          >
-                            Asistió
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => cambiarAsistencia(reserva, 'no_asistio')}
-                            disabled={marcandoId === reserva.cod_reserva}
-                            aria-pressed={estadoAsistencia === 'NO_ASISTIO'}
-                            className={'px-3 py-1 rounded border text-xs font-medium disabled:opacity-50 ' + claseNoAsistio}
-                          >
-                            No asistió
-                          </button>
-                        </span>
-                      )}
-                      {!puedeMarcar && estadoAsistencia === 'asistio' && (
-                        <span className="text-xs font-semibold text-green-700">Asististe</span>
-                      )}
-                      {!puedeMarcar && estadoAsistencia === 'no_asistio' && (
-                        <span className="text-xs font-semibold text-red-600">No asististe</span>
-                      )}
-                      {!esPasado && cancelable && (
-                        <button
-                          type="button"
-                          onClick={() => cancelarHora(reserva)}
-                          disabled={cancelandoId === reserva.cod_reserva}
-                          className="self-start sm:self-auto px-3 py-1 rounded text-xs font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-                        >
-                          {cancelandoId === reserva.cod_reserva ? 'Cancelando...' : 'Cancelar'}
-                        </button>
-                      )}
-                      {!esPasado && !cancelable && (
-                        <button
-                          type="button"
-                          disabled
-                          title={`No se puede cancelar una hora con menos de ${horas_minimas_para_cancelar} horas de anticipación`}
-                          className="self-start sm:self-auto px-3 py-1 rounded text-xs font-medium bg-gray-200 text-gray-500 cursor-not-allowed"
-                        >
-                          Cancelar
-                        </button>
-                      )}
                     </div>
                   )
                 })}
