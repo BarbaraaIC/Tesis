@@ -31,12 +31,61 @@ const obtenerActual = async (req) => {
     };
 };
 
+const listarPacientesVisibles = async (actual, res) => {
+    const esProfesional = actual.rol === "profesional";
+    const esAdministrador = actual.rol === "administrador";
+
+    if (!esProfesional && !esAdministrador) {
+        return handleErrorClient(res, 403, "No tienes permiso para ver pacientes.");
+    }
+
+    const datosPublicos = {
+        id_usuario: true,
+        nombre: true,
+        apellido: true,
+        rut: true,
+        autoriza_datos_salud: true,
+    };
+
+    let usuarios;
+    if (esAdministrador) {
+        usuarios = await prisma.usuario.findMany({
+            where: { rol: { nombre: { equals: "paciente", mode: "insensitive" } } },
+            select: datosPublicos,
+        });
+    } else {
+        const asignaciones = await prisma.tratamientoAsignado.findMany({
+            where: { id_profesional: actual.id_usuario },
+            distinct: ["id_usuario"],
+            select: { usuario: { select: datosPublicos } },
+        });
+        usuarios = asignaciones.map((asignacion) => asignacion.usuario);
+    }
+
+    const pacientes = usuarios
+        .map((usuario) => ({
+            id_usuario: usuario.id_usuario,
+            nombre: usuario.nombre,
+            apellido: usuario.apellido,
+            rut: usuario.rut,
+            autorizado: Boolean(usuario.autoriza_datos_salud),
+        }))
+        .sort((a, b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`, "es"));
+
+    return handleSuccess(res, 200, "Pacientes obtenidos con éxito.", pacientes);
+};
+
 export const getHistorialPaciente = async (req, res) => {
     try {
         const actual = await obtenerActual(req);
         if (!actual) {
             return handleErrorClient(res, 401, "La sesión no es válida.");
         }
+
+        if (req.params.id_usuario === "pacientes") {
+            return await listarPacientesVisibles(actual, res);
+        }
+
         let idPaciente;
         if (req.params.id_usuario === "mio") {
             if (actual.rol !== "paciente") {
@@ -86,7 +135,7 @@ export const getHistorialPaciente = async (req, res) => {
             return handleErrorClient(res, 404, "El paciente no fue encontrado.");
         }
 
-        if (!paciente.autoriza_datos_salud && !esAdministrador) {
+        if (!paciente.autoriza_datos_salud) {
             const mensaje = actual.rol === "paciente"
                 ? "Debes aceptar la autorización de uso de datos de salud para ver tu historial."
                 : "El paciente no ha autorizado el uso de sus datos de salud.";
@@ -207,7 +256,7 @@ export const registrarSesion = async (req, res) => {
             return handleErrorClient(res, 403, "Solo puedes registrar tus propias sesiones.");
         }
 
-        if (actual.rol === "profesional" && !reserva.asignacion.usuario.autoriza_datos_salud) {
+        if (!reserva.asignacion.usuario.autoriza_datos_salud) {
             return handleErrorClient(res, 403, "El paciente no ha autorizado el uso de sus datos de salud.");
         }
 

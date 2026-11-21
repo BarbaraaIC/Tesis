@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { cargarHistorialMedico, registrarSesion } from '../services/historialServices.jsx'
-import { getUsuarios } from '../services/usuariosServices.jsx'
 
 // "2026-10-17" -> "17 oct"
 const diaCorto = (dia) =>
@@ -376,11 +375,9 @@ function SelectorPaciente() {
   useEffect(() => {
     const cargarPacientes = async () => {
       try {
-        const respuesta = await getUsuarios(localStorage.getItem('token'))
-        const soloPacientes = respuesta.data.filter(
-          (persona) => (persona.rol || '').toLowerCase() === 'paciente'
-        )
-        setPacientes(soloPacientes)
+        // el backend entrega solo los pacientes que este usuario puede ver
+        const respuesta = await cargarHistorialMedico('pacientes')
+        setPacientes(respuesta.data || [])
       } catch (errorCapturado) {
         setError(errorCapturado.message)
       } finally {
@@ -420,10 +417,18 @@ function SelectorPaciente() {
             <li key={paciente.id_usuario}>
               <button
                 type="button"
+                disabled={!paciente.autorizado}
                 onClick={() => navigate(`/historialMedico/${paciente.id_usuario}`)}
-                className="w-full min-h-11 flex justify-between gap-3 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-50 cursor-pointer"
+                className="w-full min-h-11 flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
-                <span>{paciente.nombre} {paciente.apellido}</span>
+                <span className={paciente.autorizado ? '' : 'text-gray-400'}>
+                  {paciente.nombre} {paciente.apellido}
+                  {!paciente.autorizado && (
+                    <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                      Sin autorización
+                    </span>
+                  )}
+                </span>
                 <span className="text-gray-500">{paciente.rut}</span>
               </button>
             </li>
