@@ -17,24 +17,42 @@ const ESTILOS_DE_ROL = {
   paciente: 'bg-sky-50 text-sky-700 ring-sky-200',
 }
 
+<<<<<<< HEAD
 // Lee el rol venga como texto ("Paciente"), como objeto ({ nombre }) o dentro de "roles"
 const obtenerRolDeUsuario = (usuario) => {
   let valor = usuario.rol
+=======
+const NOMBRES_DE_ROL = ['administrador', 'profesional', 'paciente']
+const CAMPOS_SIN_ROL = ['nombre', 'apellido', 'correo', 'rut', 'telefono', 'password', 'contrasena']
+>>>>>>> b4e490981bc8cae2ed8d663df51ec8d814f9e055
 
-  if (!valor && Array.isArray(usuario.roles) && usuario.roles.length > 0) {
-    valor = usuario.roles[0]
+// Busca el rol en cualquier parte del usuario (rol, roles, usuario_rol, { rol: { nombre } }, etc.)
+const buscarRolEnValor = (valor, profundidad) => {
+  if (typeof valor === 'string') {
+    const texto = valor.toLowerCase().trim()
+    return NOMBRES_DE_ROL.includes(texto) ? texto : ''
   }
 
-  if (valor && typeof valor === 'object') {
-    valor = valor.nombre || valor.rol || valor.descripcion
-  }
-
-  if (typeof valor !== 'string') {
+  if (!valor || typeof valor !== 'object' || profundidad > 4) {
     return ''
   }
 
-  return valor.toLowerCase().trim()
+  const entradas = Array.isArray(valor) ? valor.map((v) => [null, v]) : Object.entries(valor)
+
+  for (const [clave, contenido] of entradas) {
+    if (profundidad === 0 && clave && CAMPOS_SIN_ROL.includes(clave.toLowerCase())) {
+      continue
+    }
+    const rolEncontrado = buscarRolEnValor(contenido, profundidad + 1)
+    if (rolEncontrado) {
+      return rolEncontrado
+    }
+  }
+
+  return ''
 }
+
+const obtenerRolDeUsuario = (usuario) => buscarRolEnValor(usuario, 0)
 
 const capitalizar = (texto) => texto.charAt(0).toUpperCase() + texto.slice(1)
 
@@ -45,7 +63,15 @@ const obtenerIniciales = (usuario) => {
 }
 
 const InsigniaDeRol = ({ rol }) => {
+<<<<<<< HEAD
   const estilo = ESTILOS_DE_ROL[rol] || ESTILOS_DE_ROL.paciente
+=======
+  if (!rol) {
+    return null
+  }
+
+  const estilo = ESTILOS_DE_ROL[rol]
+>>>>>>> b4e490981bc8cae2ed8d663df51ec8d814f9e055
 
   return (
     <span
@@ -82,6 +108,11 @@ const Usuarios = () => {
       try {
         const respuesta = await getUsuarios(token)
         setListaUsuarios(respuesta.data)
+
+        const primerUsuario = respuesta.data && respuesta.data[0]
+        if (primerUsuario && !obtenerRolDeUsuario(primerUsuario)) {
+          console.warn('No se encontro el rol en el usuario. Estructura recibida:', primerUsuario)
+        }
       } catch (errorCapturado) {
         setMensajeError(errorCapturado.message)
       } finally {
