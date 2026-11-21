@@ -2,35 +2,28 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getUsuarios, cambiarRolUsuario } from '../services/usuariosServices.jsx'
 
-const ROLES_DISPONIBLES = ['profesional', 'paciente']
+const roles_disponibles = ['profesional', 'paciente']
 
-const FILTROS_DE_ROL = [
+const filtros_de_rol = [
   { clave: 'todos', texto: 'Todos' },
   { clave: 'paciente', texto: 'Pacientes' },
   { clave: 'profesional', texto: 'Profesionales' },
   { clave: 'administrador', texto: 'Administradores' },
 ]
 
-const ESTILOS_DE_ROL = {
+const estilos_de_rol = {
   administrador: 'bg-[#505FB6]/10 text-[#505FB6] ring-[#505FB6]/20',
   profesional: 'bg-[#04B6B6]/10 text-teal-700 ring-[#04B6B6]/30',
   paciente: 'bg-sky-50 text-sky-700 ring-sky-200',
 }
 
-<<<<<<< HEAD
-// Lee el rol venga como texto ("Paciente"), como objeto ({ nombre }) o dentro de "roles"
-const obtenerRolDeUsuario = (usuario) => {
-  let valor = usuario.rol
-=======
-const NOMBRES_DE_ROL = ['administrador', 'profesional', 'paciente']
-const CAMPOS_SIN_ROL = ['nombre', 'apellido', 'correo', 'rut', 'telefono', 'password', 'contrasena']
->>>>>>> b4e490981bc8cae2ed8d663df51ec8d814f9e055
+const nombres_de_rol = ['administrador', 'profesional', 'paciente']
+const campos_sin_rol = ['nombre', 'apellido', 'correo', 'rut', 'telefono', 'password', 'contrasena']
 
-// Busca el rol en cualquier parte del usuario (rol, roles, usuario_rol, { rol: { nombre } }, etc.)
 const buscarRolEnValor = (valor, profundidad) => {
   if (typeof valor === 'string') {
     const texto = valor.toLowerCase().trim()
-    return NOMBRES_DE_ROL.includes(texto) ? texto : ''
+    return nombres_de_rol.includes(texto) ? texto : ''
   }
 
   if (!valor || typeof valor !== 'object' || profundidad > 4) {
@@ -40,7 +33,7 @@ const buscarRolEnValor = (valor, profundidad) => {
   const entradas = Array.isArray(valor) ? valor.map((v) => [null, v]) : Object.entries(valor)
 
   for (const [clave, contenido] of entradas) {
-    if (profundidad === 0 && clave && CAMPOS_SIN_ROL.includes(clave.toLowerCase())) {
+    if (profundidad === 0 && clave && campos_sin_rol.includes(clave.toLowerCase())) {
       continue
     }
     const rolEncontrado = buscarRolEnValor(contenido, profundidad + 1)
@@ -63,15 +56,11 @@ const obtenerIniciales = (usuario) => {
 }
 
 const InsigniaDeRol = ({ rol }) => {
-<<<<<<< HEAD
-  const estilo = ESTILOS_DE_ROL[rol] || ESTILOS_DE_ROL.paciente
-=======
   if (!rol) {
     return null
   }
 
-  const estilo = ESTILOS_DE_ROL[rol]
->>>>>>> b4e490981bc8cae2ed8d663df51ec8d814f9e055
+  const estilo = estilos_de_rol[rol]
 
   return (
     <span
@@ -205,7 +194,7 @@ const Usuarios = () => {
               aria-label={`Nuevo rol para ${usuario.nombre} ${usuario.apellido}`}
               className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#505FB6]"
             >
-              {ROLES_DISPONIBLES.map((rolDisponible) => (
+              {roles_disponibles.map((rolDisponible) => (
                 <option key={rolDisponible} value={rolDisponible}>
                   {capitalizar(rolDisponible)}
                   {rolDisponible === rolActual ? ' (actual)' : ''}
@@ -323,7 +312,7 @@ const Usuarios = () => {
 
         {esAdministrador && (
           <div className="flex flex-wrap gap-2">
-            {FILTROS_DE_ROL.map((filtro) => {
+            {filtros_de_rol.map((filtro) => {
               const estaActivo = filtroDeRol === filtro.clave
               const clasesDelFiltro = estaActivo
                 ? 'bg-[#505FB6] text-white border-[#505FB6]'
