@@ -114,6 +114,7 @@ export const getReservas = async (req, res) => {
                         tratamiento: true,
                     },
                 },
+                mensajesWhatsapp: { orderBy: { creado_en: "desc" } },
             },
             orderBy: [{ dia: "asc" }, { hora: "asc" }],
         });
@@ -141,6 +142,7 @@ export const getReservasPorProfesional = async (req, res) => {
                         tratamiento: true,
                     },
                 },
+                mensajesWhatsapp: { orderBy: { creado_en: "desc" } },
             },
             orderBy: {
                 dia: "asc",
