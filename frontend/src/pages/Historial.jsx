@@ -375,6 +375,7 @@ function SelectorPaciente() {
   useEffect(() => {
     const cargarPacientes = async () => {
       try {
+        // el backend entrega solo los pacientes que este usuario puede ver
         const respuesta = await cargarHistorialMedico('pacientes')
         setPacientes(respuesta.data || [])
       } catch (errorCapturado) {
@@ -401,7 +402,7 @@ function SelectorPaciente() {
           type="search"
           value={busqueda}
           onChange={(evento) => setBusqueda(evento.target.value)}
-          placeholder="Buscar paciente por nombre o RUT"
+          placeholder="Buscar por nombre o RUT"
           className="w-full border border-gray-300 rounded-lg p-2 text-sm mb-3"
         />
 
@@ -418,17 +419,19 @@ function SelectorPaciente() {
                 type="button"
                 disabled={!paciente.autorizado}
                 onClick={() => navigate(`/historialMedico/${paciente.id_usuario}`)}
-                className="w-full min-h-11 flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                className="w-full min-h-11 flex items-start justify-between gap-3 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
-                <span className={paciente.autorizado ? '' : 'text-gray-400'}>
-                  {paciente.nombre} {paciente.apellido}
+                <span className={`min-w-0 ${paciente.autorizado ? '' : 'text-gray-400'}`}>
+                  <span className="block">
+                    {paciente.nombre} {paciente.apellido}
+                  </span>
                   {!paciente.autorizado && (
-                    <span className="ml-2 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-600">
+                    <span className="mt-1 inline-block whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-600">
                       Sin autorización
                     </span>
                   )}
                 </span>
-                <span className="text-gray-500">{paciente.rut}</span>
+                <span className="shrink-0 whitespace-nowrap text-gray-500">{paciente.rut}</span>
               </button>
             </li>
           ))}
