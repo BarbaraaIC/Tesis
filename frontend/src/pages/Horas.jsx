@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getReservas, getReservasPorUsuario, getReservasPorProfesional, cancelarReserva, marcarAsistencia } from '../services/reservasServices.jsx'
+import EstadoWhatsApp, { tieneFalloWhatsApp } from './EstadosWhatsApp.jsx'
 
 const nombre_meses_cortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
 const nombre_dias_cortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
@@ -15,6 +16,7 @@ const filtros = [
   { clave: 'proximas', texto: 'Próximas' },
   { clave: 'pasadas', texto: 'Pasadas' },
   { clave: 'sinmarcar', texto: 'Sin marcar' }, // solo para profesional y administrador
+  { clave: 'wspfallidos', texto: 'WhatsApp fallidos' }, // solo para profesional y administrador
 ]
 
 function pad(numero) {
@@ -64,7 +66,7 @@ function fechaHoraDeReserva(reserva) {
   )
 }
 
-// Se puede cancelar en cualquier momento, excepto cuando faltan "horas_minimas_para_cancelar"
+
 
 function puedeCancelarReserva(reserva) {
   const inicio = fechaHoraDeReserva(reserva)
@@ -263,6 +265,34 @@ const MisReservas = () => {
     return () => clearInterval(intervalo)
   }, [])
 
+  // Vuelve a pedir las reservas cada minuto (sin recargar la página ni mostrar "Cargando")
+  // para que el personal vea avanzar el estado de los WhatsApp: enviado, entregado, leído.
+  useEffect(() => {
+    if (!puedeMarcar || !usuario || !usuario.id_usuario) {
+      return
+    }
+
+    const refrescarReservas = async () => {
+      if (document.hidden) {
+        return
+      }
+      try {
+        let respuesta
+        if (esAdministrador) {
+          respuesta = await getReservas()
+        } else {
+          respuesta = await getReservasPorProfesional(usuario.id_usuario)
+        }
+        setReservas(respuesta.data)
+      } catch (errorCapturado) {
+        console.error('No se pudo actualizar la lista de reservas', errorCapturado)
+      }
+    }
+
+    const intervalo = setInterval(refrescarReservas, 60000)
+    return () => clearInterval(intervalo)
+  }, [usuario, esAdministrador, puedeMarcar])
+
   if (cargando) {
     return <p>Cargando tus horas reservadas...</p>
   }
@@ -286,12 +316,14 @@ const MisReservas = () => {
       const estado = reserva.asistencia || 'pendiente'
       return fecha <= hoy && estado === 'pendiente'
     }
+    if (filtro === 'wspfallidos') {
+      return tieneFalloWhatsApp(reserva)
+    }
     return true
   })
 
   const grupos = agruparPorDia(reservasFiltradas)
   if (filtro === 'pasadas') {
-    // En "Pasadas" se muestra primero lo más reciente
     grupos.reverse()
   }
 
@@ -305,7 +337,6 @@ const MisReservas = () => {
   }
 
   const cancelarHora = async (reserva) => {
-    // Se vuelve a validar al momento de hacer clic, por si el plazo venció con la página abierta
     if (!puedeCancelarReserva(reserva)) {
       setAlerta({
         texto: `No se puede cancelar una hora con menos de ${horas_minimas_para_cancelar} horas de anticipación`,
@@ -393,6 +424,9 @@ const MisReservas = () => {
   if (reservas.length > 0 && filtro === 'sinmarcar') {
     mensajeVacio = 'No tienes horas pendientes de marcar.'
   }
+  if (reservas.length > 0 && filtro === 'wspfallidos') {
+    mensajeVacio = 'No hay mensajes de WhatsApp fallidos.'
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -425,7 +459,7 @@ const MisReservas = () => {
           Hoy
         </button>
 
-        {filtros.filter((filtroActual) => filtroActual.clave !== 'sinmarcar' || puedeMarcar).map((filtroActual) => {
+        {filtros.filter((filtroActual) => (filtroActual.clave !== 'sinmarcar' && filtroActual.clave !== 'wspfallidos') || puedeMarcar).map((filtroActual) => {
           let clase = claseBotonBase + ' ' + claseBotonInactivo
           if (filtro === filtroActual.clave) {
             clase = claseBotonBase + ' ' + claseBotonActivo
@@ -533,6 +567,7 @@ const MisReservas = () => {
                           </span>
                         )}
                       </span>
+                      {puedeMarcar && <EstadoWhatsApp mensajes={reserva.mensajesWhatsapp} />}
                       {puedeMarcar && !esFutura && (
                         <span className="flex gap-1 self-start sm:self-auto" role="group" aria-label="Asistencia">
                           <button
