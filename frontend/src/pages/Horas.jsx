@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getReservas, getReservasPorUsuario, getReservasPorProfesional, cancelarReserva, marcarAsistencia } from '../services/reservasServices.jsx'
-import EstadoWhatsApp, { tieneFalloWhatsApp } from './EstadoWhatsApp.jsx'
+import EstadoWhatsApp, { tieneFalloWhatsApp } from './EstadosWhatsApp.jsx'
 
 const nombre_meses_cortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
 const nombre_dias_cortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
