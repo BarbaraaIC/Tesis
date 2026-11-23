@@ -4,10 +4,10 @@ import HomeReserva from '../components/HomeReserva.jsx'
 import CarruselFotos from '../components/CarruselFotos.jsx'
 import imagenPortada from '../assets/kinex-center.jpg'
 import imagenQuienesSomos from '../assets/quienes-somos.jpg'
-import imagenPorqueElegirnos from '../assets/porque-elegirnosprin.jpg'
-import imagenPorqueElegirnos2 from '../assets/porque-elegirnos1.jpg'
-import imagenPorqueElegirnos3 from '../assets/porque-elegirnos2.jpg'
-import imagenPorqueElegirnos4 from '../assets/porque-elegirnos3.jpg'
+import imagenPorqueElegirnos from '../assets/porque-elegirnosprin.png'
+import imagenPorqueElegirnos2 from '../assets/porque-elegirnos1.jpeg'
+import imagenPorqueElegirnos3 from '../assets/porque-elegirnos2.jpeg'
+import imagenPorqueElegirnos4 from '../assets/porque-elegirnos3.jpeg'
 
 
 const tratamientos = [
