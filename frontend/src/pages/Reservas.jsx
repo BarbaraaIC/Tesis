@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
-import { getUsuarios, getProfesionales } from '../services/usuariosServices.jsx'
+import { getProfesionales } from '../services/usuariosServices.jsx'
+import { cargarHistorialMedico } from '../services/historialServices.jsx'
 import { getServicios } from '../services/serviciosServices.jsx'
 import { getTratamientosPorServicio } from '../services/tratamientosServices.jsx'
 import { asignarTratamiento} from '../services/tratamientosAsigServices.jsx'
@@ -84,6 +85,7 @@ function yaPaso(fecha) {
   return fecha < hoy
 }
 
+// Una hora solo se puede reservar si faltan al menos "horas_de_anticipacion" horas para ella
 function horaSinAnticipacion(fecha, hora) {
   if (!fecha) {
     return false
@@ -110,13 +112,6 @@ function generarDiasDelMes(fecha) {
   }
 
   return celdas
-}
-
-function obtenerRolNormalizado(usuarioActual) {
-  if (!usuarioActual.rol) {
-    return ''
-  }
-  return usuarioActual.rol.toLowerCase()
 }
 
 function horaDeReserva(reserva) {
@@ -228,13 +223,10 @@ const Reservas = () => {
       }
 
       try {
-        const respuesta = await getUsuarios(token)
-        const listaCompletaDeUsuarios = respuesta.data || []
-
-        const soloPacientes = listaCompletaDeUsuarios.filter((usuarioActual) => {
-          return obtenerRolNormalizado(usuarioActual) === 'paciente'
-        })
-        setPacientes(soloPacientes)
+        // El backend entrega solo los pacientes que este usuario puede atender:
+        // el profesional ve a quienes ya tienen un tratamiento asignado con él, el administrador ve a todos
+        const respuesta = await cargarHistorialMedico('pacientes')
+        setPacientes(respuesta.data || [])
       } catch (err) {
         console.error('No se pudieron cargar los pacientes', err)
         setPacientes([])
@@ -318,6 +310,7 @@ const Reservas = () => {
     }
 
     const restaurarSeleccion = async () => {
+      // Solo se piden tratamientos si el visitante ya había elegido un servicio
       if (pendiente.id_servicio) {
         try {
           const respuesta = await getTratamientosPorServicio(pendiente.id_servicio)
@@ -622,7 +615,9 @@ const Reservas = () => {
               <div className="min-w-0">
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Paciente</label>
                 <select name="id_usuario" value={formulario.id_usuario} onChange={actualizarCampo} className={claseSelect}>
-                  <option value="">Selecciona un paciente</option>
+                  <option value="">
+                    {pacientes.length === 0 ? 'No hay pacientes con reservas previas' : 'Selecciona un paciente'}
+                  </option>
                   {pacientes.map((paciente) => (
                     <option key={paciente.id_usuario} value={paciente.id_usuario}>{paciente.nombre} {paciente.apellido}</option>
                   ))}
