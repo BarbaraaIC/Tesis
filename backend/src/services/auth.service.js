@@ -1,6 +1,4 @@
 "use strict";
-import crypto from "crypto";
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/configDb.js";
 import { comparePassword } from "../handlers/bcrypt.helper.js";
@@ -51,11 +49,9 @@ export const loginUserConGoogle = async (correo) => {
 };
 
 export const registerUserConGoogle = async ({
-    correo, nombre, apellido, rut, telefono,
+    correo, nombre, apellido, rut, telefono, password,
     fecha_nacimiento, direccion, ocupacion, enfermedades, medicamentos,
 }) => {
-    const passwordAleatoria = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
-
     const usuario = await prisma.usuario.create({
         data: {
             correo,
@@ -69,7 +65,7 @@ export const registerUserConGoogle = async ({
             ocupacion,
             fecha_nacimiento: new Date(fecha_nacimiento),
             autoriza_datos_salud: false,
-            password: passwordAleatoria,
+            password,
             rol: { connect: { nombre: "paciente" } },
         },
         include: { rol: true },

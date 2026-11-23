@@ -8,6 +8,7 @@ import { asignarTratamiento} from '../services/tratamientosAsigServices.jsx'
 import { crearReserva, getDisponibilidadPorProfesional, getReservasPorUsuario } from '../services/reservasServices.jsx'
 
 const duracion_bloque_en_min = 60
+const horas_de_anticipacion = 3
 
 const horario_atencion = {
   0: { apertura: '08:00', cierre: '11:00', apertura2: '15:30', cierre2: '21:00' },
@@ -83,19 +84,15 @@ function yaPaso(fecha) {
   return fecha < hoy
 }
 
-function horaYaPaso(fecha, hora) {
+function horaSinAnticipacion(fecha, hora) {
   if (!fecha) {
     return false
   }
 
-  const ahora = new Date()
+  const inicioDeLaHora = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 0, horaAMinutos(hora))
+  const primeraHoraPermitida = new Date(Date.now() + horas_de_anticipacion * 60 * 60 * 1000)
 
-  if (fechaAtexto(fecha) !== fechaAtexto(ahora)) {
-    return false
-  }
-
-  const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes()
-  return horaAMinutos(hora) <= minutosActuales
+  return inicioDeLaHora < primeraHoraPermitida
 }
 
 function generarDiasDelMes(fecha) {
@@ -321,7 +318,6 @@ const Reservas = () => {
     }
 
     const restaurarSeleccion = async () => {
-      // Solo se piden tratamientos si el visitante ya había elegido un servicio
       if (pendiente.id_servicio) {
         try {
           const respuesta = await getTratamientosPorServicio(pendiente.id_servicio)
@@ -365,7 +361,7 @@ const Reservas = () => {
   if (
     horaSeleccionada &&
     !horasOcupadas.includes(horaSeleccionada) &&
-    !(diaSeleccionado && horaYaPaso(diaSeleccionado, horaSeleccionada))
+    !(diaSeleccionado && horaSinAnticipacion(diaSeleccionado, horaSeleccionada))
   ) {
     horaSeleccionadaValida = horaSeleccionada
   }
@@ -738,13 +734,16 @@ const Reservas = () => {
 
             {diaSeleccionado && (
               <div className="mt-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
                   Horarios — {diaSeleccionado.toLocaleDateString('es-CL')}
+                </p>
+                <p className="text-xs text-gray-400 mb-2">
+                  Las horas se reservan con al menos {horas_de_anticipacion} horas de anticipación.
                 </p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {horariosDisponibles.map((hora) => {
                     const ocupada = horasOcupadas.includes(hora)
-                    const pasada = horaYaPaso(diaSeleccionado, hora)
+                    const pasada = horaSinAnticipacion(diaSeleccionado, hora)
                     const bloqueada = ocupada || pasada
                     const seleccionada = horaSeleccionadaValida === hora
 
@@ -763,6 +762,7 @@ const Reservas = () => {
                         key={hora}
                         onClick={() => setHoraSeleccionada(hora)}
                         disabled={bloqueada}
+                        title={pasada ? 'Se reserva con ' + horas_de_anticipacion + ' horas de anticipación' : undefined}
                         className={clase}
                       >
                         {hora}
