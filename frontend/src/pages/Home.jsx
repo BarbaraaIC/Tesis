@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import HomeReserva from '../components/HomeReserva.jsx'
+import CarruselFotos from '../components/CarruselFotos.jsx'
 import imagenPortada from '../assets/kinex-center.jpg'
 import imagenQuienesSomos from '../assets/quienes-somos.jpg'
-import imagenPorqueElegirnos from '../assets/porque-elegirnos.jpg'
+import imagenPorqueElegirnos from '../assets/porque-elegirnosprin.jpg'
+import imagenPorqueElegirnos2 from '../assets/porque-elegirnos1.jpg'
+import imagenPorqueElegirnos3 from '../assets/porque-elegirnos2.jpg'
+import imagenPorqueElegirnos4 from '../assets/porque-elegirnos3.jpg'
+
 
 const tratamientos = [
     { name: 'Masoterapia', description: 'Tratamiento terapéutico mediante masajes orientados a aliviar contracturas musculares, reducir el estrés y mejorar la circulación.' },
@@ -11,6 +16,13 @@ const tratamientos = [
     { name: 'Estética Facial', description: 'Procedimientos no invasivos diseñados para rejuvenecer, hidratar profundamente y mejorar la elasticidad de la piel del rostro.' },
     { name: 'Tratamiento Estético Facial', description: 'Terapias avanzadas personalizadas para abordar imperfecciones específicas, líneas de expresión y flacidez mediante tecnología.' },
     { name: 'Estética Corporal', description: 'Tratamientos moldeadores, reductores y reafirmantes que ayudan a mejorar la silueta y tonificar tejidos corporales.' }
+]
+
+const fotosPorqueElegirnos = [
+    { src: imagenPorqueElegirnos, alt: 'Instalaciones de KinexCenter' },
+    { src: imagenPorqueElegirnos2, alt: 'Instalaciones de KinexCenter' },
+    { src: imagenPorqueElegirnos3, alt: 'Instalaciones de KinexCenter' },
+    { src: imagenPorqueElegirnos4, alt: 'Instalaciones de KinexCenter' },
 ]
 
 const beneficios = [
@@ -85,7 +97,7 @@ function Home() {
                             </ul>
                         </div>
                         <div className="flex-1 w-full">
-                            <img src={imagenPorqueElegirnos} alt="Instalaciones" className="w-full h-64 md:h-80 object-cover rounded-xl shadow-sm" />
+                            <CarruselFotos fotos={fotosPorqueElegirnos} />
                         </div>
                     </div>
                 </div>
