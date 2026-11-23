@@ -11,6 +11,7 @@ function configuracion() {
         botonDinamico: process.env.WA_BOTON_DINAMICO === "true",
         plantillaConfirmacion: process.env.WA_TPL_CONFIRMACION || "confirmacion_reserva",
         plantillaRecordatorio: process.env.WA_TPL_RECORDATORIO || "recordatorio_reserva",
+        plantillaCancelacion: process.env.WA_TPL_CANCELACION || "cancelacion_reserva",
         idioma: process.env.WA_IDIOMA || "es_CL",
     };
 }
@@ -33,11 +34,14 @@ function limpiar(texto) {
     return limpio || "-";
 }
 
-
-async function enviarPlantilla({ to, plantilla, variables, botonParam, cod_reserva, tipo }) {
+async function enviarPlantilla({ to, plantilla, variables, botonParam, cod_reserva, tipo, conBanner = true, guardarRegistro = true }) {
     const cfg = configuracion();
     const telefono = normalizarTelefono(to);
-    const registrar = (datos) => registrarMensaje({ cod_reserva, tipo, telefono, ...datos });
+    const registrar = async (datos) => {
+        if (guardarRegistro) {
+            await registrarMensaje({ cod_reserva, tipo, telefono, ...datos });
+        }
+    };
 
     if (!telefono) {
         await registrar({ estado: "fallido", error_mensaje: "El paciente no tiene un teléfono registrado." });
@@ -51,7 +55,7 @@ async function enviarPlantilla({ to, plantilla, variables, botonParam, cod_reser
 
     const components = [];
 
-    if (cfg.bannerUrl) {
+    if (conBanner && cfg.bannerUrl) {
         components.push({
             type: "header",
             parameters: [{ type: "image", image: { link: cfg.bannerUrl } }],
@@ -125,19 +129,21 @@ function variablesReserva(reserva) {
     };
 }
 
-async function enviarPlantillaDeReserva(reserva, plantilla, tipo) {
+async function enviarPlantillaDeReserva(reserva, plantilla, tipo, { conBanner = true, conBoton = true, guardarRegistro = true } = {}) {
     let datos;
     try {
         datos = variablesReserva(reserva);
     } catch (error) {
         console.error("WhatsApp: faltan datos de la reserva", reserva?.cod_reserva, "-", error.message);
-        await registrarMensaje({
-            cod_reserva: reserva?.cod_reserva,
-            tipo,
-            telefono: "",
-            estado: "fallido",
-            error_mensaje: "Faltan datos de la reserva para armar el mensaje.",
-        });
+        if (guardarRegistro) {
+            await registrarMensaje({
+                cod_reserva: reserva?.cod_reserva,
+                tipo,
+                telefono: "",
+                estado: "fallido",
+                error_mensaje: "Faltan datos de la reserva para armar el mensaje.",
+            });
+        }
         return false;
     }
 
@@ -145,9 +151,11 @@ async function enviarPlantillaDeReserva(reserva, plantilla, tipo) {
         to: datos.telefono,
         plantilla,
         variables: datos.variables,
-        botonParam: reserva.cod_reserva,
+        botonParam: conBoton ? reserva.cod_reserva : null,
         cod_reserva: reserva.cod_reserva,
         tipo,
+        conBanner,
+        guardarRegistro,
     });
 }
 
@@ -157,4 +165,12 @@ export async function enviarConfirmacionReservaWhatsApp(reserva) {
 
 export async function enviarRecordatorioReservaWhatsApp(reserva) {
     return enviarPlantillaDeReserva(reserva, configuracion().plantillaRecordatorio, "recordatorio");
+}
+
+export async function enviarCancelacionReservaWhatsApp(reserva) {
+    return enviarPlantillaDeReserva(reserva, configuracion().plantillaCancelacion, "cancelacion", {
+        conBanner: false,
+        conBoton: false,
+        guardarRegistro: false,
+    });
 }

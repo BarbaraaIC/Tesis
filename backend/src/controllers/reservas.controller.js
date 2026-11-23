@@ -2,8 +2,36 @@
 import { prisma } from "../config/configDb.js";
 import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
 import { enviarConfirmacionReserva, enviarCancelacionReserva,  } from "../services/email.service.js";
-import { enviarConfirmacionReservaWhatsApp } from "../services/whatsapp.service.js";
+import { enviarConfirmacionReservaWhatsApp, enviarCancelacionReservaWhatsApp } from "../services/whatsapp.service.js";
 import { isAdminOrProfesional } from "../middleware/authorization.middleware.js";
+
+const ZONA_HORARIA = "America/Santiago";
+const HORAS_DE_ANTICIPACION = 3;
+
+// Fecha y hora de reloj actuales en Chile, expresadas en milisegundos como si fueran UTC.
+// Así se pueden comparar con el "dia" y la "hora" de la reserva, que son hora de reloj de Chile.
+const ahoraEnChile = () => {
+    const partes = Object.fromEntries(
+        new Intl.DateTimeFormat("en-CA", {
+            timeZone: ZONA_HORARIA,
+            year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+        })
+            .formatToParts(new Date())
+            .map((parte) => [parte.type, parte.value])
+    );
+    return Date.UTC(+partes.year, +partes.month - 1, +partes.day, +partes.hour, +partes.minute);
+};
+
+// true si la reserva (dia "2026-11-23", hora "15:00") no cumple las horas de anticipación
+const faltaAnticipacion = (dia, hora, ahora = ahoraEnChile()) => {
+    const horaCorta = String(hora).slice(0, 5);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dia)) || !/^\d{2}:\d{2}$/.test(horaCorta)) return false;
+
+    const momentoDeLaReserva = Date.parse(`${dia}T${horaCorta}:00Z`);
+    if (Number.isNaN(momentoDeLaReserva)) return false;
+    return momentoDeLaReserva - ahora < HORAS_DE_ANTICIPACION * 60 * 60 * 1000;
+};
 
 async function obtenerUsuarioActual(req) {
     return prisma.usuario.findUnique({
@@ -18,6 +46,10 @@ export const crearReserva = async (req, res) => {
 
         if (!dia || !hora || !tiempo_estimado || !id_asignacion) {
             return handleErrorClient(res, 400, "Todos los campos son obligatorios.");
+        }
+
+        if (faltaAnticipacion(dia, hora)) {
+            return handleErrorClient(res, 400, `Debes reservar con al menos ${HORAS_DE_ANTICIPACION} horas de anticipación.`);
         }
 
         const asignacionTratamiento = parseInt(id_asignacion);
@@ -225,7 +257,7 @@ export const cancelarReserva = async (req, res) => {
             include: {
                 asignacion: {
                     include: {
-                        usuario: { select: { nombre: true, apellido: true, correo: true } },
+                        usuario: { select: { nombre: true, apellido: true, correo: true, telefono: true } },
                         profesional: { select: { nombre: true, apellido: true, correo: true } },
                         tratamiento: true,
                     },
@@ -243,6 +275,10 @@ export const cancelarReserva = async (req, res) => {
 
         enviarCancelacionReserva(reserva).catch((error) =>
             console.error("Error al enviar la cancelación:", error.message)
+        );
+
+        enviarCancelacionReservaWhatsApp(reserva).catch((error) =>
+            console.error("Error al enviar la cancelación por WhatsApp:", error.message)
         );
 
         return handleSuccess(res, 200, "Reserva cancelada con éxito.", reserva);
