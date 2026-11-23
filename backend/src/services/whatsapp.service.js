@@ -11,7 +11,7 @@ function configuracion() {
         botonDinamico: process.env.WA_BOTON_DINAMICO === "true",
         plantillaConfirmacion: process.env.WA_TPL_CONFIRMACION || "confirmacion_reserva",
         plantillaRecordatorio: process.env.WA_TPL_RECORDATORIO || "recordatorio_reserva",
-        plantillaCancelacion: process.env.WA_TPL_CANCELACION || "cancelacion_reserva",
+        plantillaCancelacion: process.env.WA_TPL_CANCELACION || "cancelar_reserva",
         idioma: process.env.WA_IDIOMA || "es_CL",
     };
 }
@@ -129,7 +129,7 @@ function variablesReserva(reserva) {
     };
 }
 
-async function enviarPlantillaDeReserva(reserva, plantilla, tipo, { conBanner = true, conBoton = true, guardarRegistro = true } = {}) {
+async function enviarPlantillaDeReserva(reserva, plantilla, tipo, { conBanner = true, conBoton = true, guardarRegistro = true, sinNombre = false } = {}) {
     let datos;
     try {
         datos = variablesReserva(reserva);
@@ -150,7 +150,7 @@ async function enviarPlantillaDeReserva(reserva, plantilla, tipo, { conBanner = 
     return enviarPlantilla({
         to: datos.telefono,
         plantilla,
-        variables: datos.variables,
+        variables: sinNombre ? datos.variables.slice(1) : datos.variables,
         botonParam: conBoton ? reserva.cod_reserva : null,
         cod_reserva: reserva.cod_reserva,
         tipo,
@@ -172,5 +172,6 @@ export async function enviarCancelacionReservaWhatsApp(reserva) {
         conBanner: false,
         conBoton: false,
         guardarRegistro: false,
+        sinNombre: true,
     });
 }
