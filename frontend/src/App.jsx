@@ -11,6 +11,8 @@ import Horas from './pages/Horas'
 import ProtectRoutes from './components/ProtectRoutes'
 import Layout from './components/Layout'
 import Historial from './pages/Historial'
+import Recuperar from './pages/RecuperarPassword'
+import Restablecer from './pages/RestablecerPassword'
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         <Route path="/register" element={<Register />} />
+        <Route path="/recuperar-password" element={<Recuperar />} />
+        <Route path="/restablecer-password" element={<Restablecer />} />
 
         <Route element={<Layout />}>
         <Route path="/kinex-center" element={
