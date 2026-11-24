@@ -141,7 +141,7 @@ function fechaTextoDesdeISO(fechaISO) {
 
 const claseSelect = 'w-full min-w-0 border rounded-lg p-2 text-sm text-gray-800 bg-white'
 
-const Reservas = () => {
+const Reservas = ({ modoPublico = false }) => {
   const { usuario, rol } = useAuth()
   const navigate = useNavigate()
 
@@ -154,6 +154,12 @@ const Reservas = () => {
   const esProfesional = rolActual === 'profesional'
 
   const haySesion = !!localStorage.getItem('token') && !!usuario
+
+  // modoPublico (modal de la página de inicio): el formulario es el de cualquier visitante.
+  // Se elige profesional, servicio, tratamiento y horario, sin selector de paciente ni observaciones.
+  const profesionalFijo = esProfesional && !modoPublico
+  const verSelectorPaciente = !esPaciente && haySesion && !modoPublico
+  const verObservaciones = verSelectorPaciente
 
   const [pacientes, setPacientes] = useState([])
   const [profesionales, setProfesionales] = useState([])
@@ -197,7 +203,7 @@ const Reservas = () => {
     const cargarPacientesYProfesionales = async () => {
       const token = localStorage.getItem('token')
 
-      if (esProfesional && usuario) {
+      if (profesionalFijo && usuario) {
         setFormulario((formularioAnterior) => {
           return { ...formularioAnterior, id_profesional: usuario.id_usuario }
         })
@@ -219,6 +225,10 @@ const Reservas = () => {
         setFormulario((formularioAnterior) => {
           return { ...formularioAnterior, id_usuario: usuario.id_usuario }
         })
+        return
+      }
+
+      if (modoPublico) {
         return
       }
 
@@ -253,7 +263,7 @@ const Reservas = () => {
     }
 
     cargarDatosDeLaPagina()
-  }, [esPaciente, esProfesional, usuario])
+  }, [esPaciente, profesionalFijo, modoPublico, usuario])
 
   useEffect(() => {
     if (!mostrarExito) {
@@ -433,7 +443,7 @@ const Reservas = () => {
     }
 
     let idProfesionalParaElFormulario = ''
-    if (esProfesional && usuario && usuario.id_usuario) {
+    if (profesionalFijo && usuario && usuario.id_usuario) {
       idProfesionalParaElFormulario = usuario.id_usuario
     }
 
@@ -490,7 +500,11 @@ const Reservas = () => {
     }
 
     if (!esPaciente && !formulario.id_usuario) {
-      setErrorFormulario("Selecciona un paciente.")
+      if (modoPublico) {
+        setErrorFormulario("Con una sesión de personal no se puede reservar desde aquí. Usa la sección Reservas del panel.")
+      } else {
+        setErrorFormulario("Selecciona un paciente.")
+      }
       return
     }
 
@@ -568,7 +582,7 @@ const Reservas = () => {
   }
 
   let claseContenedorSelectorPersonas = 'grid grid-cols-1 sm:grid-cols-2 gap-4'
-  if (esPaciente || esProfesional || !haySesion) {
+  if (!verSelectorPaciente || profesionalFijo) {
     claseContenedorSelectorPersonas = 'grid grid-cols-1 gap-4'
   }
 
@@ -611,7 +625,7 @@ const Reservas = () => {
 
         <form onSubmit={reservar} noValidate className="flex flex-col gap-5">
           <div className={claseContenedorSelectorPersonas}>
-            {!esPaciente && haySesion && (
+            {verSelectorPaciente && (
               <div className="min-w-0">
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Paciente</label>
                 <select name="id_usuario" value={formulario.id_usuario} onChange={actualizarCampo} className={claseSelect}>
@@ -625,7 +639,7 @@ const Reservas = () => {
               </div>
             )}
 
-            {!esProfesional && (
+            {!profesionalFijo && (
               <div className="min-w-0">
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Profesional</label>
                 <select name="id_profesional" value={formulario.id_profesional} onChange={actualizarCampo} className={claseSelect}>
@@ -672,7 +686,7 @@ const Reservas = () => {
             </div>
           </div>
 
-          {!esPaciente && haySesion && (
+          {verObservaciones && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Observaciones</label>
               <textarea name="observaciones" value={formulario.observaciones} onChange={actualizarCampo} placeholder="Opcional" className="w-full min-w-0 border rounded-lg p-2 text-sm text-gray-800 bg-white" />
