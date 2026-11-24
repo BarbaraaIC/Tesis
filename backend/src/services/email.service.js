@@ -179,3 +179,16 @@ export async function enviarCancelacionReserva(reserva) {
 
     await Promise.all([alPaciente, alProfesional]);
 }
+export async function enviarRecuperacionPassword({ usuario, enlace }) {
+    return enviarCorreo({
+        to: usuario.correo,
+        subject: "Restablecer tu contraseña",
+        text: `Hola ${usuario.nombre}, entra a este enlace para elegir una nueva contraseña (vale por 1 hora): ${enlace}`,
+        html: plantillaHtml("Restablecer tu contraseña", [
+            `Hola ${escaparHtml(usuario.nombre)},`,
+            "Recibimos una solicitud para cambiar tu contraseña. El enlace es válido por <strong>1 hora</strong> y solo se puede usar una vez.",
+            `<a href="${escaparHtml(enlace)}" style="display:inline-block;background:#04B6B6;color:#ffffff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Elegir nueva contraseña</a>`,
+            "Si no fuiste tú, ignora este correo: tu contraseña no cambiará.",
+        ]),
+    });
+}

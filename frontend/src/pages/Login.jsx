@@ -92,6 +92,12 @@ function Login (){
                     />
                 </div>
 
+                <div className="text-right -mt-4 mb-5">
+                    <Link to="/recuperar-password" className="text-sm text-[#505FB6] hover:underline">
+                        ¿Olvidaste tu contraseña?
+                    </Link>
+                </div>
+
                 <button
                     type="submit"
                     className="w-full bg-[#04B6B6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer"

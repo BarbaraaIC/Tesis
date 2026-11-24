@@ -1,9 +1,11 @@
 "use strict";
+import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import {loginUser,loginUserConGoogle,registerUserConGoogle} from "../services/auth.service.js";
 import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
 import { encryptPassword } from "../handlers/bcrypt.helper.js";
 import { prisma } from "../config/configDb.js";
+import { enviarRecuperacionPassword } from "../services/email.service.js";
 
 const clienteGoogle = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -190,5 +192,64 @@ export const verificarDisponibilidad = async (req, res) => {
         });
     } catch (error) {
         return handleErrorServer(res, 500, "Error al verificar los datos.", error.message);
+    }
+};
+
+const secretoRecuperacion = (usuario) =>
+    `${process.env.JWT_SECRET || "clave_secreta_por_defecto_tesis"}.${usuario.password ?? ""}`;
+
+export const solicitarRecuperacion = async (req, res) => {
+    const correo = String(req.body?.correo ?? "").trim();
+    if (!correo) {
+        return handleErrorClient(res, 400, "Escribe tu correo electrónico.");
+    }
+    const mensaje = "Si el correo está registrado, te enviamos un enlace para restablecer la contraseña.";
+
+    try {
+        const usuario = await prisma.usuario.findFirst({
+            where: { correo: { equals: correo, mode: "insensitive" } },
+        });
+
+        if (usuario) {
+            const token = jwt.sign({ sub: usuario.id_usuario }, secretoRecuperacion(usuario), { expiresIn: "1h" });
+            const base = (process.env.FRONTEND_URL || "").replace(/\/$/, "");
+            const enlace = `${base}/restablecer-password?id=${usuario.id_usuario}&token=${token}`;
+            await enviarRecuperacionPassword({ usuario, enlace });
+        }
+        return handleSuccess(res, 200, mensaje, null);
+    } catch (error) {
+        console.error("solicitarRecuperacion:", error.message);
+        return handleSuccess(res, 200, mensaje, null);
+    }
+};
+
+export const restablecerPassword = async (req, res) => {
+    const { id, token, passwordNueva } = req.body ?? {};
+
+    if (!id || !token || !passwordNueva) {
+        return handleErrorClient(res, 400, "Faltan datos.");
+    }
+    if (!password_val.test(String(passwordNueva))) {
+        return handleErrorClient(res, 400, "La contraseña debe tener entre 8 y 30 caracteres y al menos un número.");
+    }
+
+    try {
+        const usuario = await prisma.usuario.findUnique({ where: { id_usuario: Number(id) } });
+        if (!usuario) {
+            return handleErrorClient(res, 400, "Enlace inválido o vencido. Solicita uno nuevo.");
+        }
+        try {
+            jwt.verify(String(token), secretoRecuperacion(usuario));
+        } catch {
+            return handleErrorClient(res, 400, "Enlace inválido o vencido. Solicita uno nuevo.");
+        }
+
+        await prisma.usuario.update({
+            where: { id_usuario: usuario.id_usuario },
+            data: { password: await encryptPassword(String(passwordNueva)) },
+        });
+        return handleSuccess(res, 200, "Contraseña actualizada.", null);
+    } catch (error) {
+        return handleErrorServer(res, 500, "Error al restablecer la contraseña.", error.message);
     }
 };
