@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { solicitarRecuperacion } from "../services/authServices.jsx";
+import { solicitarRecuperacion } from "../services/auth.services.jsx";
 
 function RecuperarPassword() {
     const [correo, setCorreo] = useState('')
