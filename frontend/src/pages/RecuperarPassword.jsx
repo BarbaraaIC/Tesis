@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { solicitarRecuperacion } from "../services/authServices.jsx";
 
 function RecuperarPassword() {
     const [correo, setCorreo] = useState('')
@@ -13,19 +14,10 @@ function RecuperarPassword() {
         setMensaje('')
         setEnviando(true)
         try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/recuperar-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ correo }),
-            })
-            const data = await res.json().catch(() => ({}))
-            if (!res.ok) {
-                setError(data.message || 'No se pudo enviar el correo.')
-                return
-            }
+            const data = await solicitarRecuperacion(correo)
             setMensaje(data.message)
-        } catch {
-            setError('Error de conexión con el servidor')
+        } catch (err) {
+            setError(err.message)
         } finally {
             setEnviando(false)
         }
