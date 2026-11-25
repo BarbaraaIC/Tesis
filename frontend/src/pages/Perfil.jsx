@@ -15,10 +15,9 @@ const campos = [
     { name: 'medicamentos', label: 'Medicamentos', tipo: 'text'},
     ]
 
-// Campos que solo se pueden visualizar
 const camposBloqueados = ['nombre', 'apellido', 'rut', 'fecha_nacimiento']
 
-const TEXTO_AUTORIZACION =
+const texto_salud =
     'Autorizo que mis datos de salud, como enfermedades y medicamentos, sean utilizados con fines médicos.'
 
 const inputClase = 'w-full min-w-0 border rounded-lg p-2 text-sm'
@@ -60,7 +59,7 @@ function armarFormDesdeUsuario(usuario) {
 }
 
 function obtenerClaseColumna(campo) {
-    // min-w-0 evita que el contenido largo (ej. un correo) empuje el ancho de la tarjeta
+
     if (campo.tipo === 'textarea') {
         return 'min-w-0 sm:col-span-2'
     }
@@ -76,6 +75,7 @@ const Perfil = () => {
     const [guardando, setGuardando] = useState(false)
     const [error, setError] = useState('')
     const [mostrarExito, setMostrarExito] = useState(false)
+    const [autorizando, setAutorizando] = useState(false)
 
 
     useEffect(() => {
@@ -116,6 +116,36 @@ const Perfil = () => {
         setForm((formularioAnterior) => {
             return { ...formularioAnterior, autoriza_datos_salud: marcado }
         })
+    }
+
+    // Guarda la autorización directamente desde la vista principal, sin entrar a "Editar perfil"
+    const autorizarDatosDeSalud = async () => {
+        if (yaAutorizo || autorizando) {
+            return
+        }
+        setError('')
+        setAutorizando(true)
+
+        try {
+            // eslint-disable-next-line no-unused-vars
+            const { fecha_nacimiento, ...datosActuales } = armarFormDesdeUsuario(usuario)
+            const datosAEnviar = { ...datosActuales, autoriza_datos_salud: true }
+
+            const respuesta = await actualizarUsuario(usuario.id_usuario, datosAEnviar)
+
+            if (setUsuario) {
+                let datosActualizados = datosAEnviar
+                if (respuesta && respuesta.data) {
+                    datosActualizados = respuesta.data
+                }
+                setUsuario({ ...usuario, ...datosActualizados, autoriza_datos_salud: true })
+            }
+            setMostrarExito(true)
+        } catch (errorCapturado) {
+            setError(errorCapturado.message || 'No se pudo guardar la autorización')
+        } finally {
+            setAutorizando(false)
+        }
     }
 
     const cancelarEdicion = () => {
@@ -289,7 +319,7 @@ const Perfil = () => {
                         }
                     />
                     <span className="min-w-0">
-                        {TEXTO_AUTORIZACION}
+                        {texto_salud}
                         {yaAutorizo && (
                             <span className="block text-xs text-gray-500 mt-1">
                                 Ya aceptaste esta autorización.
@@ -362,19 +392,38 @@ const Perfil = () => {
                 </div>
 
                 {!modoEdicion && (
-                    <p className="mt-4 flex items-start gap-2 text-xs text-gray-600">
-                        {usuario.autoriza_datos_salud ? (
-                            <>
-                                <span aria-hidden="true" className="font-bold text-green-700">✓</span>
-                                <span>Autorizaste que tus datos de salud, como enfermedades y medicamentos, sean utilizados con fines médicos.</span>
-                            </>
-                        ) : (
-                            <>
-                                <span aria-hidden="true">○</span>
-                                <span>Aún no has autorizado el uso de tus datos de salud con fines médicos. Puedes hacerlo en "Editar perfil".</span>
-                            </>
-                        )}
-                    </p>
+                    <div className="mt-4 flex items-start gap-3 bg-white rounded-xl border border-gray-100 p-4">
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={yaAutorizo}
+                            aria-label="Autorizar el uso de mis datos de salud"
+                            onClick={autorizarDatosDeSalud}
+                            disabled={yaAutorizo || autorizando}
+                            className={
+                                'relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors ' +
+                                (yaAutorizo ? 'bg-[#04B6B6] cursor-default' : 'bg-gray-300 hover:bg-gray-400 cursor-pointer') +
+                                (autorizando ? ' opacity-50' : '')
+                            }
+                        >
+                            <span
+                                className={
+                                    'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ' +
+                                    (yaAutorizo ? 'translate-x-5' : '')
+                                }
+                            />
+                        </button>
+                        <div className="min-w-0 text-sm">
+                            <p className="font-medium text-gray-800">Uso de mis datos de salud</p>
+                            <p className="text-xs text-gray-600 mt-0.5">
+                                {yaAutorizo
+                                    ? 'Autorizaste que tus datos de salud, como enfermedades y medicamentos, sean utilizados con fines médicos.'
+                                    : autorizando
+                                        ? 'Guardando...'
+                                        : texto_salud + ' Activa el interruptor para aceptar y poder ver tu historial médico.'}
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
