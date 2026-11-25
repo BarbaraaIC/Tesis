@@ -180,7 +180,7 @@ function HistorialPaciente({ idUsuario }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
-  const [version, setVersion] = useState(0)
+  const [version, setVersion] = useState(0)   // sube para volver a cargar el historial
   const [autorizando, setAutorizando] = useState(false)
   const [errorAutorizar, setErrorAutorizar] = useState('')
 
@@ -201,6 +201,7 @@ function HistorialPaciente({ idUsuario }) {
     cargarHistorial()
   }, [idPaciente, version])
 
+  // El paciente entra a su propio historial sin haber autorizado el uso de sus datos
   const faltaAutorizar = !idUsuario && !!usuario && /autoriz/i.test(error)
 
   const autorizarYContinuar = async () => {
@@ -285,7 +286,7 @@ function HistorialPaciente({ idUsuario }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6">
+    <div className="w-full min-w-0 max-w-6xl mx-auto flex flex-col gap-6">
       <header className="bg-white border border-gray-200 rounded-xl p-5 flex flex-wrap items-center gap-4">
         <div className="w-14 h-14 rounded-full bg-[#04B6B6] text-[#042f2f] flex items-center justify-center text-xl font-semibold">
           {iniciales}
@@ -309,8 +310,8 @@ function HistorialPaciente({ idUsuario }) {
         )}
       </header>
 
-      <div className="flex flex-wrap gap-6 items-start">
-        <div className="flex-1 basis-72 flex flex-col gap-6">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="w-full min-w-0 lg:flex-1 lg:basis-72 flex flex-col gap-6">
           <Tarjeta titulo="Resumen">
             {resumen.proximaHora ? (
               <div className="bg-[#505FB6] text-white rounded-lg px-4 py-3 mb-4">
@@ -360,7 +361,7 @@ function HistorialPaciente({ idUsuario }) {
       </Tarjeta>
         </div>
 
-        <div className="flex-[2_1_30rem]">
+        <div className="w-full min-w-0 lg:flex-[2_1_30rem]">
           <Tarjeta titulo="Historial de tratamientos">
             {sesiones.length === 0 ? (
               <p className="text-sm text-gray-500">Aún no hay sesiones registradas.</p>
@@ -370,17 +371,17 @@ function HistorialPaciente({ idUsuario }) {
                   const estado = estados[sesion.asistencia]
                   const asistio = sesion.asistencia === 'asistio'
                   return (
-                    <li key={sesion.cod_reserva} className="flex gap-4">
-                      <div className="w-24 shrink-0">
+                    <li key={sesion.cod_reserva} className="flex flex-col sm:flex-row gap-1.5 sm:gap-4">
+                      <div className="flex items-baseline gap-2 sm:block sm:w-24 shrink-0">
                         <p className="text-[15px] font-semibold">{diaConAnio(sesion.dia)}</p>
                         <p className="text-xs text-gray-500">{sesion.hora} hrs</p>
                       </div>
 
-                      <div className="flex-1 border border-gray-200 rounded-lg px-4 py-3">
-                        <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0 border border-gray-200 rounded-lg px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-[15px] font-semibold">{sesion.tratamiento}</p>
                           {estado && (
-                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${estado.clase}`}>
+                            <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${estado.clase}`}>
                               {estado.texto}
                             </span>
                           )}
@@ -395,7 +396,7 @@ function HistorialPaciente({ idUsuario }) {
                             <p className="text-xs text-gray-500 mt-3">
                               {asistio ? 'Descripción de la sesión' : 'Observación'}
                             </p>
-                            <p className="text-sm text-gray-700">{sesion.nota}</p>
+                            <p className="text-sm text-gray-700 break-words">{sesion.nota}</p>
                           </>
                         ) : (
                           asistio && (
@@ -433,6 +434,7 @@ function SelectorPaciente() {
   useEffect(() => {
     const cargarPacientes = async () => {
       try {
+        // el backend entrega solo los pacientes que este usuario puede ver
         const respuesta = await cargarHistorialMedico('pacientes')
         setPacientes(respuesta.data || [])
       } catch (errorCapturado) {
