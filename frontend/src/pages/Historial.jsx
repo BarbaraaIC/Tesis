@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { cargarHistorialMedico, registrarSesion } from '../services/historialServices.jsx'
+import { actualizarUsuario } from '../services/usuariosServices.jsx'
 
 // "2026-10-17" -> "17 oct"
 const diaCorto = (dia) =>
@@ -174,12 +175,14 @@ function RegistrarSesionModal({ pendientes, onCerrar, onGuardado }) {
   )
 }
 function HistorialPaciente({ idUsuario }) {
-  const { usuario } = useAuth()
+  const { usuario, setUsuario } = useAuth()
 
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
-  const [version, setVersion] = useState(0)   // sube para volver a cargar el historial
+  const [version, setVersion] = useState(0)
+  const [autorizando, setAutorizando] = useState(false)
+  const [errorAutorizar, setErrorAutorizar] = useState('')
 
   const idPaciente = idUsuario || usuario?.id_usuario
 
@@ -198,15 +201,70 @@ function HistorialPaciente({ idUsuario }) {
     cargarHistorial()
   }, [idPaciente, version])
 
-  if (error) {
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center p-4">
-      <div className="bg-white border border-gray-200 rounded-xl p-8 max-w-md w-full text-center">
-        <p className="text-base text-gray-700">{error}</p>
+  const faltaAutorizar = !idUsuario && !!usuario && /autoriz/i.test(error)
+
+  const autorizarYContinuar = async () => {
+    setErrorAutorizar('')
+    setAutorizando(true)
+    try {
+      const datosActuales = {
+        nombre: usuario.nombre ?? '',
+        apellido: usuario.apellido ?? '',
+        rut: usuario.rut ?? '',
+        correo: usuario.correo ?? '',
+        telefono: usuario.telefono ?? '',
+        direccion: usuario.direccion ?? '',
+        ocupacion: usuario.ocupacion ?? '',
+        enfermedades: usuario.enfermedades ?? '',
+        medicamentos: usuario.medicamentos ?? '',
+        autoriza_datos_salud: true,
+      }
+      const respuesta = await actualizarUsuario(usuario.id_usuario, datosActuales)
+
+      if (setUsuario) {
+        setUsuario({ ...usuario, ...(respuesta?.data ?? datosActuales), autoriza_datos_salud: true })
+      }
+      setError('')
+      setVersion((actual) => actual + 1)
+    } catch (errorCapturado) {
+      setErrorAutorizar(errorCapturado.message || 'No se pudo guardar la autorización')
+    } finally {
+      setAutorizando(false)
+    }
+  }
+
+  if (faltaAutorizar) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-8 max-w-md w-full text-center">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">Autoriza el uso de tus datos de salud</h2>
+          <p className="text-sm text-gray-600 mb-5">
+            Para mostrarte tu historial necesitamos tu autorización para usar tus datos de salud, como enfermedades y
+            medicamentos, con fines médicos. Puedes aceptarla ahora.
+          </p>
+          {errorAutorizar && <p className="text-red-600 text-sm mb-3">{errorAutorizar}</p>}
+          <button
+            type="button"
+            onClick={autorizarYContinuar}
+            disabled={autorizando}
+            className="w-full bg-[#505FB6] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#3f4d9e] disabled:opacity-50 cursor-pointer"
+          >
+            {autorizando ? 'Guardando...' : 'Autorizar y ver mi historial'}
+          </button>
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-8 max-w-md w-full text-center">
+          <p className="text-base text-gray-700">{error}</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!datos) {
     return <p className="text-sm text-gray-500">Cargando historial</p>
@@ -375,7 +433,6 @@ function SelectorPaciente() {
   useEffect(() => {
     const cargarPacientes = async () => {
       try {
-        // el backend entrega solo los pacientes que este usuario puede ver
         const respuesta = await cargarHistorialMedico('pacientes')
         setPacientes(respuesta.data || [])
       } catch (errorCapturado) {
