@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from "@react-oauth/google";
 import { guardarSesion } from "../services/sesion.service.js";
-import { iniciarSesion, iniciarSesionConGoogle } from "../services/authServices.jsx";
+import { iniciarSesion, iniciarSesionConGoogle } from "../services/auth.services.jsx";
 
 function Login (){
     const [correo, setCorreo] = useState('')
