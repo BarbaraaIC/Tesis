@@ -201,7 +201,6 @@ function HistorialPaciente({ idUsuario }) {
     cargarHistorial()
   }, [idPaciente, version])
 
-  // El paciente entra a su propio historial sin haber autorizado el uso de sus datos
   const faltaAutorizar = !idUsuario && !!usuario && /autoriz/i.test(error)
 
   const autorizarYContinuar = async () => {
