@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { guardarSesion } from "../services/sesion.service.js";
+import { iniciarSesionConGoogle, registrarUsuario, registrarUsuarioConGoogle, verificarDisponibilidad } from "../services/authServices.jsx";
 
 const ocupaciones = [
     'Estudiante',
@@ -125,7 +126,7 @@ function Register (){
         return ''
     }
 
-    const irAlSiguientePaso = (siguientePaso) => {
+    const irAlSiguientePaso = async (siguientePaso) => {
         let mensajeError = ''
 
         if (step === 1) {
@@ -139,6 +140,25 @@ function Register (){
             return
         }
 
+        // Revisa en el servidor que el RUT, correo y teléfono no estén ya registrados
+        const campos = step === 1
+            ? { rut: rut.trim() }
+            : { telefono: telefono.trim(), ...(googleCredential ? {} : { correo: correo.trim() }) }
+
+        setEnviando(true)
+        try {
+            const respuesta = await verificarDisponibilidad(campos)
+            if (respuesta.data && respuesta.data.disponible === false) {
+                setError(respuesta.data.motivo || 'Estos datos ya están registrados.')
+                return
+            }
+        } catch (err) {
+            setError(err.message)
+            return
+        } finally {
+            setEnviando(false)
+        }
+
         setError('')
         setStep(siguientePaso)
     }
@@ -146,17 +166,7 @@ function Register (){
     const alGoogle = async ({ credential }) => {
         setError('')
         try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/google`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential }),
-            })
-            const json = await res.json()
-
-            if (!res.ok) {
-                setError(json.message || 'No se pudo continuar con Google.')
-                return
-            }
+            const json = await iniciarSesionConGoogle(credential)
 
             const data = json.data
             if (data?.registroPendiente) {
@@ -170,8 +180,8 @@ function Register (){
                 // la cuenta ya existe, inicia sesión
                 navigate(guardarSesion(data))
             }
-        } catch {
-            setError('Error de conexión con el servidor')
+        } catch (err) {
+            setError(err.message)
         }
     }
 
@@ -197,43 +207,32 @@ function Register (){
 
         const ocupacionFinal = ocupacion === 'Otra' ? ocupacionOtra : ocupacion
 
-        const url = googleCredential
-            ? `${import.meta.env.VITE_BACKEND_URL}/api/auth/google/registro`
-            : `${import.meta.env.VITE_BACKEND_URL}/api/auth/register`
-
         const body = {
-            nombre, apellido, rut, telefono,
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            rut: rut.trim(),
+            telefono: telefono.trim(),
             fecha_nacimiento: fecha_nacimiento,
-            ocupacion: ocupacionFinal, direccion,
-            enfermedades: tieneEnfermedades === 'no' ? null : enfermedades,
-            medicamentos: tieneMedicamentos === 'no' ? null : medicamentos,
+            ocupacion: ocupacionFinal.trim(), direccion: direccion.trim(),
+            enfermedades: tieneEnfermedades === 'no' ? null : enfermedades.trim(),
+            medicamentos: tieneMedicamentos === 'no' ? null : medicamentos.trim(),
 
             ...(googleCredential
                 ? { credential: googleCredential, password }
-                : { correo, password }),
+                : { correo: correo.trim(), password }),
         }
 
         setEnviando(true)
         try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            })
-
-            const data = await res.json()
-            if (!res.ok) {
-                setError(data.message || 'Error al registrar.')
-                return
-            }
-
             if (googleCredential) {
+                const data = await registrarUsuarioConGoogle(body)
                 navigate(guardarSesion(data.data))
             } else {
+                await registrarUsuario(body)
                 navigate('/login')
             }
-        } catch {
-            setError('Error de conexión con el servidor')
+        } catch (err) {
+            setError(err.message)
         } finally {
             setEnviando(false)
         }
@@ -325,8 +324,8 @@ return (
                         />
                 </div>
 
-                <button type="button" onClick={() => irAlSiguientePaso(2)} className="w-full bg-[#04B6B6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
-                    Siguiente
+                <button type="button" disabled={enviando} onClick={() => irAlSiguientePaso(2)} className="w-full bg-[#04B6B6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer disabled:opacity-50">
+                    {enviando ? 'Verificando...' : 'Siguiente'}
                 </button>
                 </>
             )}
@@ -381,8 +380,8 @@ return (
                     <button type="button" onClick={() => { setError(''); setStep(1) }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors cursor-pointer">
                         Anterior
                     </button>
-                    <button type="button" onClick={() => irAlSiguientePaso(3)} className="flex-1 bg-[#505FB6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
-                        Siguiente
+                    <button type="button" disabled={enviando} onClick={() => irAlSiguientePaso(3)} className="flex-1 bg-[#505FB6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer disabled:opacity-50">
+                        {enviando ? 'Verificando...' : 'Siguiente'}
                     </button>
                 </div>
                 </>

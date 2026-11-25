@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from "@react-oauth/google";
 import { guardarSesion } from "../services/sesion.service.js";
+import { iniciarSesion, iniciarSesionConGoogle } from "../services/authServices.jsx";
 
 function Login (){
     const [correo, setCorreo] = useState('')
@@ -14,50 +15,25 @@ function Login (){
         setError('');
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ correo, password }),
-            })
-
-            const data = await res.json()
-
-            if (!res.ok) {
-                setError(data.message || 'Error al iniciar sesión, la contraseña o el correo no es el correcto.')
-                return
-            }
-
+            const data = await iniciarSesion(correo, password)
             navigate(guardarSesion(data.data))
-        } catch {
-            setError('Error de conexión con el servidor')
+        } catch (err) {
+            setError(err.message)
         }
     }
 
     const handleGoogle = async ({ credential }) => {
         setError('')
         try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/google`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential }),
-            })
-
-            const json = await res.json()
-
-            if (!res.ok) {
-                setError(json.message || 'No se pudo iniciar sesión con Google.')
-                return
-            }
-
-            // Cuenta nueva: se manda al registro con los datos de Google precargados
+            const json = await iniciarSesionConGoogle(credential)
             if (json.data?.registroPendiente) {
                 navigate('/register', { state: { credential, ...json.data } })
                 return
             }
 
             navigate(guardarSesion(json.data))
-        } catch {
-            setError('Error de conexión con el servidor')
+        } catch (err) {
+            setError(err.message)
         }
     }
 
