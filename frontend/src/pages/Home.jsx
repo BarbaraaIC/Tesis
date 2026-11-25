@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import HomeReserva from '../components/HomeReserva.jsx'
 import CarruselFotos from '../components/CarruselFotos.jsx'
 import imagenPortada from '../assets/kinex-center.jpeg'
@@ -38,6 +39,8 @@ const testimonios = [
 
 function Home() {
     const [tarjetasVolteadas, setTarjetasVolteadas] = useState({})
+    const { usuario } = useAuth()
+    const haySesion = !!localStorage.getItem('token') && !!usuario
 
     const alternarTarjeta = (nombre) => {
         setTarjetasVolteadas((anterior) => ({ ...anterior, [nombre]: !anterior[nombre] }))
@@ -52,9 +55,15 @@ function Home() {
                     <li><a href="#tratamientos" className="text-sm md:text-base text-white transition-colors">Tratamientos</a></li>
                     <li><a href="#contacto" className="text-sm md:text-base text-white transition-colors">Contacto</a></li>
                     <li>
-                        <Link to="/login" className="text-sm md:text-base text-white font-semibold underline underline-offset-4">
-                            Iniciar sesión
-                        </Link>
+                        {haySesion ? (
+                            <Link to="/kinex-center" className="text-sm md:text-base text-white font-semibold underline underline-offset-4">
+                                Hola, {usuario.nombre} · Ir a mi panel
+                            </Link>
+                        ) : (
+                            <Link to="/login" className="text-sm md:text-base text-white font-semibold underline underline-offset-4">
+                                Iniciar sesión
+                            </Link>
+                        )}
                     </li>
                 </ul>
             </nav>

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { restablecerPassword } from "../services/auth.services.jsx";
 
 const password_val = /^(?=.*\d)[^.,?= \s]{8,30}$/;
-const mensaje_password = 'La contraseña debe tener entre 8 y 30 caracteres, al menos un número y no usar espacios ni . , ? =';
+const mensaje_password = 'La contraseña debe tener al menos 8 caracteres';
 
 function RestablecerPassword() {
     const [params] = useSearchParams()
