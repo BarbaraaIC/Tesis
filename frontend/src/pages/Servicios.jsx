@@ -3,14 +3,14 @@ import { useAuth } from '../hooks/usuarios/useAuth.jsx'
 import { getServicios, crearServicio } from '../services/serviciosServices.jsx'
 import { getTratamientosPorServicio, crearTratamiento, cambiarEstadoTratamiento } from '../services/tratamientosServices.jsx'
 
-const TIPOS_SERVICIO = [
+const tipos_servicios = [
   'Rehabilitación musculoesquelética',
   'Terapia pulmonar respiratoria',
   'Masoterapia',
   'Estética corporal y facial',
 ]
 
-const DESCRIPCIONES_TRATAMIENTO = [
+const descripciones_tratamiento = [
   'Desgarros',
   'Esguinces',
   'Fracturas',
@@ -25,7 +25,7 @@ const DESCRIPCIONES_TRATAMIENTO = [
 ]
 
 
-const OPCION_OTRO = '__otro__'
+const opcion_otro = '__otro__'
 
 const Servicios = () => {
   const { rol } = useAuth()
@@ -150,7 +150,7 @@ const Servicios = () => {
     }
 
     let tipoFinal = nuevoServicio.tipo_servicio
-    if (tipoFinal === OPCION_OTRO) {
+    if (tipoFinal === opcion_otro) {
       tipoFinal = tipoPersonalizado.trim()
     }
 
@@ -212,7 +212,7 @@ const Servicios = () => {
     }
 
     let descripcionFinal = nuevoTratamiento.descripcion
-    if (descripcionFinal === OPCION_OTRO) {
+    if (descripcionFinal === opcion_otro) {
       descripcionFinal = descripcionPersonalizada.trim()
     }
 
@@ -286,6 +286,92 @@ const Servicios = () => {
     return <p className="text-red-500">{error}</p>
   }
 
+  const claseDeFlecha = (estaExpandido) => {
+    if (estaExpandido) {
+      return 'w-4 h-4 transition-transform rotate-90'
+    }
+    return 'w-4 h-4 transition-transform'
+  }
+
+  const renderizarPanelTratamientos = (servicioActual, listaTratamientos) => {
+    const botonEstado = (tratamientoActual) => (
+      <button
+        onClick={() =>
+          handleCambiarEstadoTratamiento(servicioActual.id_servicio, tratamientoActual.cod_tratamiento)
+        }
+        className={`text-white px-2 py-0.5 rounded text-xs ${
+          tratamientoActual.activo
+            ? 'bg-orange-500 hover:bg-orange-600'
+            : 'bg-green-500 hover:bg-green-600'
+        }`}
+      >
+        {tratamientoActual.activo ? 'Desactivar' : 'Activar'}
+      </button>
+    )
+
+    return (
+      <>
+        <div className="flex items-center justify-end mb-3">
+          <button
+            onClick={(evento) => {
+              evento.stopPropagation()
+              abrirModalTratamiento(servicioActual.id_servicio)
+            }}
+            className="text-sm md:text-xs font-medium text-[#505FB6] hover:text-[#3f4d9e]"
+          >
+            + Agregar tratamiento
+          </button>
+        </div>
+
+        {cargandoTratamientos && listaTratamientos === undefined && (
+          <p className="text-xs text-gray-400">Cargando tratamientos...</p>
+        )}
+
+        {listaTratamientos && listaTratamientos.length === 0 && (
+          <p className="text-xs text-gray-400">Este servicio aún no tiene tratamientos.</p>
+        )}
+
+        {listaTratamientos && listaTratamientos.length > 0 && (
+          <>
+            <ul className="md:hidden flex flex-col gap-2">
+              {listaTratamientos.map((tratamientoActual) => (
+                <li
+                  key={tratamientoActual.cod_tratamiento}
+                  className="flex items-center justify-between gap-3 bg-white rounded-lg border border-gray-100 p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-700 break-words">{tratamientoActual.descripcion}</p>
+                    <p className="text-sm font-semibold text-gray-800 mt-0.5">${tratamientoActual.costo}</p>
+                  </div>
+                  <div className="shrink-0">{botonEstado(tratamientoActual)}</div>
+                </li>
+              ))}
+            </ul>
+
+            <table className="hidden md:table w-full text-xs bg-white rounded-lg border border-gray-100 overflow-hidden">
+              <thead>
+                <tr className="text-left text-gray-500 uppercase tracking-wide bg-gray-100">
+                  <th className="p-2 font-semibold">Descripción</th>
+                  <th className="p-2 font-semibold">Costo</th>
+                  <th className="p-2 font-semibold">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {listaTratamientos.map((tratamientoActual) => (
+                  <tr key={tratamientoActual.cod_tratamiento} className="border-t border-gray-100">
+                    <td className="p-2 text-gray-600">{tratamientoActual.descripcion}</td>
+                    <td className="p-2 text-gray-600">${tratamientoActual.costo}</td>
+                    <td className="p-2 text-center">{botonEstado(tratamientoActual)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </>
+    )
+  }
+
   const textoBusqueda = busqueda.toLowerCase()
   const serviciosVisibles = servicios.filter((servicioActual) => {
     let nombreServicio = ''
@@ -308,7 +394,7 @@ const Servicios = () => {
   return (
     <div className="max-w-4xl mx-auto">
       {mostrarAlerta && (
-        <div className="fixed bottom-4 right-4 flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 min-w-[300px]">
+        <div className="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-3 bg-green-50 text-green-800 px-4 py-3 rounded-lg shadow-md border border-green-100 sm:min-w-[300px]">
           <span className="flex items-center justify-center w-5 h-5 bg-green-500 text-white rounded-full flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -323,12 +409,12 @@ const Servicios = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Servicios Clínicos</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Servicios Clínicos</h2>
         {tieneAcceso && (
           <button
             onClick={() => setMostrarModal(true)}
-            className="bg-[#505FB6] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#3f4d9e] transition-colors"
+            className="bg-[#505FB6] text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-[#3f4d9e] transition-colors"
           >
             + Crear servicio
           </button>
@@ -355,7 +441,51 @@ const Servicios = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
+        <ul className="md:hidden divide-y divide-gray-100">
+          {serviciosVisibles.map((servicioActual) => {
+            const estaExpandido = servicioExpandido === servicioActual.id_servicio
+            return (
+              <li key={servicioActual.id_servicio}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={estaExpandido}
+                  onClick={() => alternarExpansionServicio(servicioActual.id_servicio)}
+                  onKeyDown={(evento) => {
+                    if (evento.key === 'Enter' || evento.key === ' ') {
+                      evento.preventDefault()
+                      alternarExpansionServicio(servicioActual.id_servicio)
+                    }
+                  }}
+                  className="flex items-start gap-3 p-4 cursor-pointer active:bg-gray-50"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={claseDeFlecha(estaExpandido) + ' mt-1 shrink-0 text-gray-400'}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-800">{servicioActual.tipo_servicio}</p>
+                    <p className="text-sm text-gray-500 mt-1 break-words">{servicioActual.descripcion}</p>
+                  </div>
+                </div>
+
+                {estaExpandido && (
+                  <div className="bg-gray-50/70 px-4 pb-4 pt-2">
+                    {renderizarPanelTratamientos(servicioActual, tratamientosPorServicio[servicioActual.id_servicio])}
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+
+        <table className="hidden md:table w-full text-sm">
           <thead>
             <tr className="bg-[#04B6B6] text-left text-black-500 uppercase text-xs tracking-wide">
               <th className="p-3 font-semibold w-8"></th>
@@ -404,59 +534,7 @@ const Servicios = () => {
                     <tr className="bg-gray-50/70 border-t border-gray-100">
                       <td></td>
                       <td colSpan={2} className="p-4">
-                        <div className="flex items-center justify-end mb-3">
-                          <button
-                            onClick={(evento) => {
-                              evento.stopPropagation()
-                              abrirModalTratamiento(servicioActual.id_servicio)
-                            }}
-                            className="text-xs font-medium text-[#505FB6] hover:text-[#3f4d9e]"
-                          >
-                            + Agregar tratamiento
-                          </button>
-                        </div>
-
-                        {cargandoTratamientos && listaTratamientos === undefined && (
-                          <p className="text-xs text-gray-400">Cargando tratamientos...</p>
-                        )}
-
-                        {listaTratamientos && listaTratamientos.length === 0 && (
-                          <p className="text-xs text-gray-400">Este servicio aún no tiene tratamientos.</p>
-                        )}
-
-                        {listaTratamientos && listaTratamientos.length > 0 && (
-                          <table className="w-full text-xs bg-white rounded-lg border border-gray-100 overflow-hidden">
-                            <thead>
-                              <tr className="text-left text-gray-500 uppercase tracking-wide bg-gray-100">
-                                <th className="p-2 font-semibold">Descripción</th>
-                                <th className="p-2 font-semibold">Costo</th>
-                                <th className="p-2 font-semibold">Acciones</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {listaTratamientos.map((tratamientoActual) => (
-                                <tr key={tratamientoActual.cod_tratamiento} className="border-t border-gray-100">
-                                  <td className="p-2 text-gray-600">{tratamientoActual.descripcion}</td>
-                                  <td className="p-2 text-gray-600">${tratamientoActual.costo}</td>
-                                  <td className="p-2 text-center">
-                                    <button
-                                      onClick={() =>
-                                        handleCambiarEstadoTratamiento(servicioActual.id_servicio, tratamientoActual.cod_tratamiento)
-                                      }
-                                      className={`text-white px-2 py-0.5 rounded text-xs ${
-                                        tratamientoActual.activo
-                                          ? 'bg-orange-500 hover:bg-orange-600'
-                                          : 'bg-green-500 hover:bg-green-600'
-                                      }`}
-                                    >
-                                      {tratamientoActual.activo ? 'Desactivar' : 'Activar'}
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
+                        {renderizarPanelTratamientos(servicioActual, listaTratamientos)}
                       </td>
                     </tr>
                   )}
@@ -472,8 +550,8 @@ const Servicios = () => {
       </div>
 
       {mostrarModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">Nuevo servicio</h3>
 
             {errorModal && <p className="text-red-600 text-sm mb-3">{errorModal}</p>}
@@ -491,15 +569,15 @@ const Servicios = () => {
                   className="w-full border rounded-lg p-2"
                 >
                   <option value="">Selecciona un tipo de servicio</option>
-                  {TIPOS_SERVICIO.map((tipoServicioActual) => (
+                  {tipos_servicios.map((tipoServicioActual) => (
                     <option key={tipoServicioActual} value={tipoServicioActual}>
                       {tipoServicioActual}
                     </option>
                   ))}
-                  <option value={OPCION_OTRO}>Otro (escribir manualmente)</option>
+                  <option value={opcion_otro}>Otro (escribir manualmente)</option>
                 </select>
 
-                {nuevoServicio.tipo_servicio === OPCION_OTRO && (
+                {nuevoServicio.tipo_servicio === opcion_otro && (
                   <input
                     type="text"
                     value={tipoPersonalizado}
@@ -537,8 +615,8 @@ const Servicios = () => {
       )}
 
       {mostrarModalTratamiento && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">Nuevo tratamiento</h3>
 
             {errorModalTratamiento && <p className="text-red-600 text-sm mb-3">{errorModalTratamiento}</p>}
@@ -576,15 +654,15 @@ const Servicios = () => {
                   className="w-full border rounded-lg p-2"
                 >
                   <option value="">Selecciona una descripción</option>
-                  {DESCRIPCIONES_TRATAMIENTO.map((descripcionActual) => (
+                  {descripciones_tratamiento.map((descripcionActual) => (
                     <option key={descripcionActual} value={descripcionActual}>
                       {descripcionActual}
                     </option>
                   ))}
-                  <option value={OPCION_OTRO}>Otro (escribir manualmente)</option>
+                  <option value={opcion_otro}>Otro (escribir manualmente)</option>
                 </select>
 
-                {nuevoTratamiento.descripcion === OPCION_OTRO && (
+                {nuevoTratamiento.descripcion === opcion_otro && (
                   <input
                     type="text"
                     value={descripcionPersonalizada}
