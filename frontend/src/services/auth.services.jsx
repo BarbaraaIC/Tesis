@@ -59,13 +59,3 @@ export async function registrarUsuarioConGoogle(datos) {
         throw new Error(backendMessage, { cause: error });
     }
 }
-
-export async function verificarDisponibilidad(campos) {
-    try {
-        const response = await axios.get('/auth/verificar-disponibilidad', { params: campos });
-        return response.data;
-    } catch (error) {
-        const backendMessage = error.response?.data?.message || 'Error al verificar los datos';
-        throw new Error(backendMessage, { cause: error });
-    }
-}

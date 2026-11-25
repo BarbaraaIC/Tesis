@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { guardarSesion } from "../services/sesion.service.js";
-import { iniciarSesionConGoogle, registrarUsuario, registrarUsuarioConGoogle, 
-    verificarDisponibilidad } from "../services/auth.services.jsx";
+import { iniciarSesionConGoogle, registrarUsuario, registrarUsuarioConGoogle } from "../services/auth.services.jsx";
 
 const ocupaciones = [
     'Estudiante',
@@ -52,7 +51,6 @@ function Register (){
     const navigate = useNavigate()
     const location = useLocation()
 
-    // Si llegamos desde el Login con una cuenta de Google nueva, vienen estos datos
     const googleInicial = location.state
 
     const [step, setStep] = useState(1)
@@ -127,7 +125,7 @@ function Register (){
         return ''
     }
 
-    const irAlSiguientePaso = async (siguientePaso) => {
+    const irAlSiguientePaso = (siguientePaso) => {
         let mensajeError = ''
 
         if (step === 1) {
@@ -141,25 +139,6 @@ function Register (){
             return
         }
 
-        // Revisa en el servidor que el RUT, correo y teléfono no estén ya registrados
-        const campos = step === 1
-            ? { rut: rut.trim() }
-            : { telefono: telefono.trim(), ...(googleCredential ? {} : { correo: correo.trim() }) }
-
-        setEnviando(true)
-        try {
-            const respuesta = await verificarDisponibilidad(campos)
-            if (respuesta.data && respuesta.data.disponible === false) {
-                setError(respuesta.data.motivo || 'Estos datos ya están registrados.')
-                return
-            }
-        } catch (err) {
-            setError(err.message)
-            return
-        } finally {
-            setEnviando(false)
-        }
-
         setError('')
         setStep(siguientePaso)
     }
@@ -171,14 +150,12 @@ function Register (){
 
             const data = json.data
             if (data?.registroPendiente) {
-                // cuenta nueva, precarga los datos de google
                 setGoogleCredential(credential)
                 setNombre(data.nombre ?? '')
                 setApellido(data.apellido ?? '')
                 setCorreo(data.correo ?? '')
                 setStep(1)
             } else {
-                // la cuenta ya existe, inicia sesión
                 navigate(guardarSesion(data))
             }
         } catch (err) {
@@ -325,8 +302,8 @@ return (
                         />
                 </div>
 
-                <button type="button" disabled={enviando} onClick={() => irAlSiguientePaso(2)} className="w-full bg-[#04B6B6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer disabled:opacity-50">
-                    {enviando ? 'Verificando...' : 'Siguiente'}
+                <button type="button" onClick={() => irAlSiguientePaso(2)} className="w-full bg-[#04B6B6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
+                    Siguiente
                 </button>
                 </>
             )}
@@ -381,8 +358,8 @@ return (
                     <button type="button" onClick={() => { setError(''); setStep(1) }} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors cursor-pointer">
                         Anterior
                     </button>
-                    <button type="button" disabled={enviando} onClick={() => irAlSiguientePaso(3)} className="flex-1 bg-[#505FB6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer disabled:opacity-50">
-                        {enviando ? 'Verificando...' : 'Siguiente'}
+                    <button type="button" onClick={() => irAlSiguientePaso(3)} className="flex-1 bg-[#505FB6] text-white py-2 rounded-lg font-medium hover:bg-[#3f4d9e] transition-colors cursor-pointer">
+                        Siguiente
                     </button>
                 </div>
                 </>
