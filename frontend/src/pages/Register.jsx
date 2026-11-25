@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { guardarSesion } from "../services/sesion.service.js";
-import { iniciarSesionConGoogle, registrarUsuario, registrarUsuarioConGoogle, verificarDisponibilidad } from "../services/authServices.jsx";
+import { iniciarSesionConGoogle, registrarUsuario, registrarUsuarioConGoogle, 
+    verificarDisponibilidad } from "../services/auth.services.jsx";
 
 const ocupaciones = [
     'Estudiante',
