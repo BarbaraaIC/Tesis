@@ -56,8 +56,13 @@ function Home() {
                     <li><a href="#contacto" className="text-sm md:text-base text-white transition-colors">Contacto</a></li>
                     <li>
                         {haySesion ? (
-                            <Link to="/kinex-center" className="text-sm md:text-base text-white font-semibold underline underline-offset-4">
-                                Hola, {usuario.nombre} · Ir a mi panel
+                            <Link
+                                to="/kinex-center"
+                                title="Ir a mi panel"
+                                aria-label={`Ir a mi panel (${usuario.nombre})`}
+                                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#04B6B6] font-bold text-base uppercase shadow-sm hover:bg-gray-100 transition-colors"
+                            >
+                                {(usuario.nombre || '?').charAt(0)}
                             </Link>
                         ) : (
                             <Link to="/login" className="text-sm md:text-base text-white font-semibold underline underline-offset-4">
