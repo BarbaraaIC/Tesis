@@ -280,6 +280,15 @@ function HistorialPaciente({ idUsuario }) {
     setVersion((actual) => actual + 1)
   }
 
+  // Sesiones a las que asistió, agrupadas por tratamiento (cambia a medida que se registran sesiones)
+  const conteoPorTratamiento = {}
+  sesiones.forEach((sesion) => {
+    if (sesion.asistencia === 'asistio' && sesion.tratamiento) {
+      conteoPorTratamiento[sesion.tratamiento] = (conteoPorTratamiento[sesion.tratamiento] || 0) + 1
+    }
+  })
+  const sesionesPorTratamiento = Object.entries(conteoPorTratamiento).sort((a, b) => b[1] - a[1])
+
   let porcentajePlan = 0
   if (resumen.sesionesPlan) {
     porcentajePlan = Math.min(100, (resumen.sesionesRealizadas / resumen.sesionesPlan) * 100)
@@ -346,16 +355,22 @@ function HistorialPaciente({ idUsuario }) {
                 </div>
               </>
             ) : (
-              <>
-                {resumen.plan && (
-                  <p className="text-sm mb-1">
-                    Tratamiento: <strong>{resumen.plan}</strong>
-                  </p>
-                )}
-                <p className="text-sm">
-                  Sesiones realizadas: <strong>{resumen.sesionesRealizadas}</strong>
-                </p>
-              </>
+              <p className="text-sm">
+                Sesiones realizadas: <strong>{resumen.sesionesRealizadas}</strong>
+              </p>
+            )}
+
+            {sesionesPorTratamiento.length > 0 && (
+              <ul className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-1.5">
+                {sesionesPorTratamiento.map(([tratamiento, cantidad]) => (
+                  <li key={tratamiento} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="min-w-0 break-words text-gray-600">{tratamiento}</span>
+                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                      {cantidad}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </Tarjeta>
 
