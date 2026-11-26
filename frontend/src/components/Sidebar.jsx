@@ -9,6 +9,7 @@ import {
   LogOut,
   ChevronLeft,
   FileText,
+  TrendingUp,
 } from 'lucide-react'
 
 const Sidebar = ({ colapsado, setColapsado }) => {
@@ -98,6 +99,13 @@ const Sidebar = ({ colapsado, setColapsado }) => {
       icono: Clock,
       ruta: '/misHoras',
       visible: true,
+    },
+    {
+      nombre: 'Reportes',
+      icono: TrendingUp,
+      ruta: '/reportes',
+      visible:
+        rolNormalizado === 'administrador' || rolNormalizado === 'profesional',
     },
     {
       nombre: 'Perfil',

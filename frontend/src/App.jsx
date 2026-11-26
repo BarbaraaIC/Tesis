@@ -13,6 +13,7 @@ import Layout from './components/Layout'
 import Historial from './pages/Historial'
 import Recuperar from './pages/RecuperarPassword'
 import Restablecer from './pages/RestablecerPassword'
+import Reportes from './pages/Reportes'
 
 function App() {
   return (
@@ -61,6 +62,12 @@ function App() {
           <Historial />
         </ProtectRoutes>
       } />
+
+        <Route path="/reportes" element={
+    <ProtectRoutes rolesPermitidos={['administrador', 'profesional']}>
+      <Reportes />
+    </ProtectRoutes>
+  } />
 
 
       </Route>
