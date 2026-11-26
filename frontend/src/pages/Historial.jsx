@@ -288,14 +288,19 @@ function HistorialPaciente({ idUsuario }) {
   return (
     <div className="w-full min-w-0 max-w-6xl mx-auto flex flex-col gap-6">
       <header className="bg-white border border-gray-200 rounded-xl p-5 flex flex-wrap items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-[#04B6B6] text-[#042f2f] flex items-center justify-center text-xl font-semibold">
-          {iniciales}
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold">{paciente.nombre} {paciente.apellido}</h1>
-          <p className="text-sm text-gray-500">
-            Historial de tratamientos{resumen.plan ? ` · ${resumen.plan}` : ''}
-          </p>
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-14 h-14 shrink-0 rounded-full bg-[#04B6B6] text-[#042f2f] flex items-center justify-center text-xl font-semibold">
+            {iniciales}
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold break-words">{paciente.nombre} {paciente.apellido}</h1>
+            <p className="text-sm text-gray-500">Historial de tratamientos</p>
+            {paciente.fecha_autorizacion && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                Uso de datos de salud autorizado el {fechaAutorizacion(paciente.fecha_autorizacion)}
+              </p>
+            )}
+          </div>
         </div>
 
         {puedeRegistrar && (
@@ -341,9 +346,16 @@ function HistorialPaciente({ idUsuario }) {
                 </div>
               </>
             ) : (
-              <p className="text-sm">
-                Sesiones realizadas: <strong>{resumen.sesionesRealizadas}</strong>
-              </p>
+              <>
+                {resumen.plan && (
+                  <p className="text-sm mb-1">
+                    Tratamiento: <strong>{resumen.plan}</strong>
+                  </p>
+                )}
+                <p className="text-sm">
+                  Sesiones realizadas: <strong>{resumen.sesionesRealizadas}</strong>
+                </p>
+              </>
             )}
           </Tarjeta>
 
@@ -352,12 +364,6 @@ function HistorialPaciente({ idUsuario }) {
         <p className="text-sm mb-3">{paciente.enfermedades || 'Ninguna declarada'}</p>
         <p className="text-xs text-gray-500">Medicamentos</p>
         <p className="text-sm">{paciente.medicamentos || 'Ninguno'}</p>
-
-        {paciente.fecha_autorizacion && (                                   
-          <p className="text-xs text-gray-400 mt-4">                        
-            Uso de datos de salud autorizado el {fechaAutorizacion(paciente.fecha_autorizacion)}
-          </p>                                                              
-        )}                                                                  
       </Tarjeta>
         </div>
 
