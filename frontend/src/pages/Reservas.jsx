@@ -558,10 +558,16 @@ const Reservas = ({ modoPublico = false }) => {
         id_asignacion: idAsignacion,
       })
 
+      const llevarAMisHoras = seleccionRestaurada || modoPublico
+
       limpiarFormulario()
       setDatosInvitado({ nombre: '', apellido: '', email: '', telefono: '' })
       setSeleccionRestaurada(false)
       setMostrarExito(true)
+
+      if (llevarAMisHoras) {
+        setTimeout(() => navigate('/misHoras'), 1500)
+      }
     } catch (errorCapturado) {
       setErrorFormulario(errorCapturado.message)
     } finally {
