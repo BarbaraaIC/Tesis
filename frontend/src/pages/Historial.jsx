@@ -36,7 +36,7 @@ const estados = {
 }
 
 const Tarjeta = ({ titulo, children }) => (
-  <section className="bg-white border border-gray-200 rounded-xl p-5">
+  <section className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5">
     <h2 className="text-base font-semibold mb-3">{titulo}</h2>
     {children}
   </section>
@@ -201,6 +201,7 @@ function HistorialPaciente({ idUsuario }) {
     cargarHistorial()
   }, [idPaciente, version])
 
+  // El paciente entra a su propio historial sin haber autorizado el uso de sus datos
   const faltaAutorizar = !idUsuario && !!usuario && /autoriz/i.test(error)
 
   const autorizarYContinuar = async () => {
@@ -452,7 +453,7 @@ function SelectorPaciente() {
   )
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="w-full min-w-0 max-w-2xl mx-auto">
       <Tarjeta titulo="Historial médico">
         <label htmlFor="buscar-paciente" className="sr-only">Buscar paciente</label>
         <input
@@ -460,7 +461,7 @@ function SelectorPaciente() {
           type="search"
           value={busqueda}
           onChange={(evento) => setBusqueda(evento.target.value)}
-          placeholder="Buscar por nombre o RUT"
+          placeholder="Nombre o RUT"
           className="w-full border border-gray-300 rounded-lg p-2 text-sm mb-3"
         />
 
@@ -477,10 +478,10 @@ function SelectorPaciente() {
                 type="button"
                 disabled={!paciente.autorizado}
                 onClick={() => navigate(`/historialMedico/${paciente.id_usuario}`)}
-                className="w-full min-h-11 flex items-start justify-between gap-3 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                className="w-full min-h-11 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-0.5 sm:gap-3 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <span className={`min-w-0 ${paciente.autorizado ? '' : 'text-gray-400'}`}>
-                  <span className="block">
+                  <span className="block break-words">
                     {paciente.nombre} {paciente.apellido}
                   </span>
                   {!paciente.autorizado && (
@@ -489,7 +490,7 @@ function SelectorPaciente() {
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 whitespace-nowrap text-gray-500">{paciente.rut}</span>
+                <span className="shrink-0 whitespace-nowrap text-xs sm:text-sm text-gray-500">{paciente.rut}</span>
               </button>
             </li>
           ))}
