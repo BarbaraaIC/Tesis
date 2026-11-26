@@ -558,7 +558,9 @@ const Reservas = ({ modoPublico = false }) => {
         id_asignacion: idAsignacion,
       })
 
-      const llevarAMisHoras = seleccionRestaurada || modoPublico
+      // Los pacientes (y quien reserva desde el inicio o tras iniciar sesión / registrarse)
+      // van a "Mis horas" para ver su reserva. El personal se queda en esta pantalla
+      const llevarAMisHoras = esPaciente || seleccionRestaurada || modoPublico
 
       limpiarFormulario()
       setDatosInvitado({ nombre: '', apellido: '', email: '', telefono: '' })
