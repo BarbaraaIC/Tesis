@@ -52,9 +52,7 @@ const etiquetaPeriodo = (periodo, agrupar) => {
         const fecha = new Date(`${periodo}-01T00:00:00Z`)
         return fecha.toLocaleDateString('es-CL', { timeZone: 'UTC', month: 'short', year: '2-digit' }).replace('.', '')
     }
-    if (agrupar === 'semana') {
-        return `Sem ${diaCorto(periodo)}`
-    }
+    // En semana se muestra el lunes en que empieza (el selector ya dice "Semana")
     return diaCorto(periodo)
     }
 
@@ -214,7 +212,7 @@ const maximoTratamiento = datos ? Math.max(1, ...datos.porTratamiento.map((t) =>
                 <div className="overflow-x-auto pb-2">
                     <ul className="flex items-end gap-2 h-52 min-w-full w-max pt-6">
                     {datos.serie.map((punto) => (
-                        <li key={punto.periodo} className="flex flex-col items-center justify-end h-full w-10 shrink-0">
+                        <li key={punto.periodo} className={`flex flex-col items-center justify-end h-full shrink-0 ${agrupar === 'dia' ? 'w-10' : 'w-14'}`}>
                         <span className="text-xs text-gray-600 mb-1">{punto.sesiones || ''}</span>
                         <div
                             className="w-full rounded-t bg-[#04B6B6]"
@@ -227,6 +225,9 @@ const maximoTratamiento = datos ? Math.max(1, ...datos.porTratamiento.map((t) =>
                         </li>
                     ))}
                     </ul>
+                    {agrupar === 'semana' && (
+                    <p className="text-xs text-gray-400 mt-2">Cada barra es una semana; la fecha es el lunes en que empieza.</p>
+                    )}
                 </div>
                 )}
             </Tarjeta>
