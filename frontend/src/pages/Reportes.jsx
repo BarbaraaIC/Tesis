@@ -88,6 +88,7 @@ const claseCampo = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-whi
     const [rango, setRango] = useState(() => rangoUltimosDias(30))
     const [agrupar, setAgrupar] = useState('dia')
     const [inactividad, setInactividad] = useState(60)
+    const [profesional, setProfesional] = useState('')
 
     const [datos, setDatos] = useState(null)
     const [cargando, setCargando] = useState(true)
@@ -100,7 +101,7 @@ const claseCampo = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-whi
         setCargando(true)
         setError('')
         try {
-            const respuesta = await getReporte({ desde: rango.desde, hasta: rango.hasta, agrupar, inactividad })
+            const respuesta = await getReporte({ desde: rango.desde, hasta: rango.hasta, agrupar, inactividad, ...(profesional ? { profesional } : {}) })
             if (vigente) setDatos(respuesta.data)
         } catch (errorCapturado) {
             if (vigente) setError(errorCapturado.message)
@@ -113,7 +114,7 @@ const claseCampo = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-whi
         return () => {
         vigente = false
         }
-    }, [rango, agrupar, inactividad])
+    }, [rango, agrupar, inactividad, profesional])
 
     const cambiarFecha = (campo, valor) => {
         if (!valor) return
@@ -123,15 +124,42 @@ const claseCampo = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-whi
 const resumen = datos?.resumen
 const maximoSerie = datos ? Math.max(1, ...datos.serie.map((punto) => punto.sesiones)) : 1
 const maximoTratamiento = datos ? Math.max(1, ...datos.porTratamiento.map((t) => t.sesiones)) : 1
+const maximoProfesional = datos ? Math.max(1, ...datos.porProfesional.map((p) => p.sesiones)) : 1
+
+    const esAdministrador = !!datos?.profesionales
+    const profesionalElegido = datos?.profesionales?.find((p) => String(p.id_usuario) === String(profesional))
+    let tituloReporte = ''
+    if (esAdministrador) {
+        tituloReporte = profesionalElegido
+        ? `Reporte de ${profesionalElegido.nombre} ${profesionalElegido.apellido}`
+        : 'Reporte general (todos los profesionales)'
+    }
 
     return (
         <div className="w-full min-w-0 max-w-6xl mx-auto flex flex-col gap-6">
         <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Reportes</h2>
+            {tituloReporte && <p className="text-sm font-semibold text-[#505FB6]">{tituloReporte}</p>}
             <p className="text-sm text-gray-500">Solo se cuentan las sesiones a las que el paciente asistió.</p>
         </div>
 
         <section className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
+            {esAdministrador && (
+            <label className="text-xs font-semibold text-gray-500 uppercase">
+                Profesional
+                <select
+                value={profesional}
+                onChange={(evento) => setProfesional(evento.target.value)}
+                className={`${claseCampo} block mt-1 w-full sm:w-72 normal-case font-normal`}
+                >
+                <option value="">General (todos)</option>
+                {datos.profesionales.map((p) => (
+                    <option key={p.id_usuario} value={p.id_usuario}>{p.nombre} {p.apellido}</option>
+                ))}
+                </select>
+            </label>
+            )}
+
             <div className="flex flex-wrap gap-2">
             {rangos.map((atajo) => (
                 <button
@@ -231,6 +259,34 @@ const maximoTratamiento = datos ? Math.max(1, ...datos.porTratamiento.map((t) =>
                 </div>
                 )}
             </Tarjeta>
+
+            {esAdministrador && !profesional && datos.porProfesional.length > 0 && (
+            <Tarjeta titulo="Sesiones por profesional">
+                <ul className="flex flex-col gap-3">
+                {datos.porProfesional.map((fila) => (
+                    <li key={fila.id_profesional}>
+                    <button
+                        type="button"
+                        onClick={() => setProfesional(String(fila.id_profesional))}
+                        className="w-full text-left cursor-pointer group"
+                        title="Ver el reporte de este profesional"
+                    >
+                        <div className="flex items-center justify-between gap-3 text-sm mb-1">
+                        <span className="min-w-0 break-words text-gray-700 group-hover:text-[#505FB6]">{fila.nombre}</span>
+                        <span className="shrink-0 text-gray-500">
+                            <strong className="text-gray-800">{fila.sesiones}</strong> sesiones · {fila.pacientesAtendidos} pacientes
+                        </span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full">
+                        <div className="h-2 bg-[#04B6B6] rounded-full" style={{ width: `${(fila.sesiones / maximoProfesional) * 100}%` }} />
+                        </div>
+                    </button>
+                    </li>
+                ))}
+                </ul>
+                <p className="text-xs text-gray-400 mt-3">Toca un profesional para ver su reporte completo.</p>
+            </Tarjeta>
+            )}
 
             <Tarjeta titulo="Sesiones por tratamiento">
                 {datos.porTratamiento.length === 0 ? (

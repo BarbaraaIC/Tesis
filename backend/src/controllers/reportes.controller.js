@@ -70,7 +70,16 @@ export const getReporte = async (req, res) => {
             return handleErrorClient(res, 400, "La agrupación debe ser dia, semana o mes.");
         }
 
-        const filtroProfesional = esProfesional ? { id_profesional: actual.id_usuario } : {};
+
+        const idElegido = parseInt(req.query.profesional ?? "", 10);
+        let idProfesional = null;
+        if (esProfesional) {
+            idProfesional = actual.id_usuario;
+        } else if (Number.isInteger(idElegido) && idElegido > 0) {
+            idProfesional = idElegido;
+        }
+        const filtroProfesional = idProfesional ? { id_profesional: idProfesional } : {};
+        const esGeneral = esAdministrador && !idProfesional;
 
         const reservas = await prisma.reserva.findMany({
             where: {
@@ -83,6 +92,8 @@ export const getReporte = async (req, res) => {
                 asignacion: {
                     select: {
                         id_usuario: true,
+                        id_profesional: true,
+                        profesional: { select: { nombre: true, apellido: true } },
                         tratamiento: { select: { descripcion: true } },
                     },
                 },
@@ -113,13 +124,42 @@ export const getReporte = async (req, res) => {
             .map(([tratamiento, sesiones]) => ({ tratamiento, sesiones }))
             .sort((a, b) => b.sesiones - a.sesiones);
 
+        let porProfesional = [];
+        if (esGeneral) {
+            const mapa = new Map();
+            asistidas.forEach((r) => {
+                const { id_profesional, profesional } = r.asignacion;
+                const registro = mapa.get(id_profesional) ?? {
+                    id_profesional,
+                    nombre: `${profesional?.nombre ?? ""} ${profesional?.apellido ?? ""}`.trim() || "Sin nombre",
+                    sesiones: 0,
+                    pacientes: new Set(),
+                };
+                registro.sesiones += 1;
+                registro.pacientes.add(r.asignacion.id_usuario);
+                mapa.set(id_profesional, registro);
+            });
+            porProfesional = [...mapa.values()]
+                .map(({ pacientes, ...resto }) => ({ ...resto, pacientesAtendidos: pacientes.size }))
+                .sort((a, b) => b.sesiones - a.sesiones);
+        }
+
+        let profesionales = null;
+        if (esAdministrador) {
+            profesionales = await prisma.usuario.findMany({
+                where: { rol: { nombre: { equals: "profesional", mode: "insensitive" } } },
+                select: { id_usuario: true, nombre: true, apellido: true },
+                orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
+            });
+        }
+
         const limite = sumarDias(hoy, -inactividad);
 
         const pacientes = await prisma.usuario.findMany({
             where: {
                 rol: { nombre: { equals: "paciente", mode: "insensitive" } },
-                ...(esProfesional
-                    ? { tratamientosAsignados: { some: { id_profesional: actual.id_usuario } } }
+                ...(idProfesional
+                    ? { tratamientosAsignados: { some: { id_profesional: idProfesional } } }
                     : {}),
             },
             select: {
@@ -157,7 +197,9 @@ export const getReporte = async (req, res) => {
             });
 
         return handleSuccess(res, 200, "Reporte generado.", {
-            rango: { desde, hasta, agrupar, inactividad },
+            rango: { desde, hasta, agrupar, inactividad, profesional: idProfesional },
+            profesionales,
+            porProfesional,
             resumen: {
                 sesionesRealizadas: asistidas.length,
                 pacientesAtendidos,
