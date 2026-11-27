@@ -212,7 +212,7 @@ function Home() {
                         <h3 className="font-semibold mb-3">Horarios de atención</h3>
                         <p className="text-sm mb-1">Lunes - Viernes: 08:00 - 20:00</p>
                         <p className="text-sm">Sábado: 08:00 - 18:00</p>
-                        <p className="text-sm">Domingos: 08:00 - 20:00</p>
+                        <p className="text-sm">Domingos: 08:00 - 10:00 / 15:30 - 19:30</p>
                     </div>
                 </div>
             </footer>
